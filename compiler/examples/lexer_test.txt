@@ -1,0 +1,9 @@
+int count = 10;
+float rate = 2.5;
+bool active = true;
+
+// Test while loop
+while (count > 0 && active) {
+    print(count);
+    count = count - 1;
+}
