@@ -1,6 +1,6 @@
-#line 2 "lexer.c"
+#line 2 "compiler\\src\\lexer\\lexer.c"
 
-#line 4 "lexer.c"
+#line 4 "compiler\\src\\lexer\\lexer.c"
 
 #define  YY_INT_ALIGNED short int
 
@@ -532,16 +532,14 @@ int yy_flex_debug = 0;
 #define YY_MORE_ADJ 0
 #define YY_RESTORE_YY_MORE_OFFSET
 char *yytext;
-#line 1 "lexer.l"
-#line 5 "lexer.l"
+#line 1 "compiler\\src\\lexer\\lexer.l"
+#line 6 "compiler\\src\\lexer\\lexer.l"
 #include <stdio.h>
+#include "../parser/parser.tab.h"
 
 int lexical_error_count = 0;
 
-#define PRINT_TOKEN(type) \
-    printf("%-18s : %-12s (line %d)\n", type, yytext, yylineno)
-
-#line 545 "lexer.c"
+#line 543 "compiler\\src\\lexer\\lexer.c"
 
 #define INITIAL 0
 #define COMMENT 1
@@ -729,10 +727,10 @@ YY_DECL
 	register char *yy_cp, *yy_bp;
 	register int yy_act;
     
-#line 21 "lexer.l"
+#line 20 "compiler\\src\\lexer\\lexer.l"
 
 
-#line 736 "lexer.c"
+#line 734 "compiler\\src\\lexer\\lexer.c"
 
 	if ( !(yy_init) )
 		{
@@ -827,228 +825,224 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 23 "lexer.l"
-{ PRINT_TOKEN("KEYWORD"); }
+#line 22 "compiler\\src\\lexer\\lexer.l"
+{ return INT; }
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 24 "lexer.l"
-{ PRINT_TOKEN("KEYWORD"); }
+#line 23 "compiler\\src\\lexer\\lexer.l"
+{ return FLOAT; }
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 25 "lexer.l"
-{ PRINT_TOKEN("KEYWORD"); }
+#line 24 "compiler\\src\\lexer\\lexer.l"
+{ return BOOL; }
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 26 "lexer.l"
-{ PRINT_TOKEN("KEYWORD"); }
+#line 26 "compiler\\src\\lexer\\lexer.l"
+{ return IF; }
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 27 "lexer.l"
-{ PRINT_TOKEN("KEYWORD"); }
+#line 27 "compiler\\src\\lexer\\lexer.l"
+{ return ELSE; }
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 28 "lexer.l"
-{ PRINT_TOKEN("KEYWORD"); }
+#line 28 "compiler\\src\\lexer\\lexer.l"
+{ return WHILE; }
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 29 "lexer.l"
-{ PRINT_TOKEN("KEYWORD"); }
+#line 29 "compiler\\src\\lexer\\lexer.l"
+{ return PRINT; }
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 31 "lexer.l"
-{ PRINT_TOKEN("BOOL_LITERAL"); }
+#line 31 "compiler\\src\\lexer\\lexer.l"
+{ return TRUE; }
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 32 "lexer.l"
-{ PRINT_TOKEN("BOOL_LITERAL"); }
+#line 32 "compiler\\src\\lexer\\lexer.l"
+{ return FALSE; }
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 34 "lexer.l"
-{ PRINT_TOKEN("FLOAT_LITERAL"); }
+#line 34 "compiler\\src\\lexer\\lexer.l"
+{ return FLOAT_LITERAL; }
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 35 "lexer.l"
-{ PRINT_TOKEN("INTEGER_LITERAL"); }
+#line 35 "compiler\\src\\lexer\\lexer.l"
+{ return INTEGER_LITERAL; }
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 37 "lexer.l"
-{ PRINT_TOKEN("IDENTIFIER"); }
+#line 36 "compiler\\src\\lexer\\lexer.l"
+{ return IDENTIFIER; }
 	YY_BREAK
-/* Arithmetic operators */
 case 13:
 YY_RULE_SETUP
-#line 40 "lexer.l"
-{ PRINT_TOKEN("ARITHMETIC_OPERATOR"); }
+#line 38 "compiler\\src\\lexer\\lexer.l"
+{ return PLUS; }
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 41 "lexer.l"
-{ PRINT_TOKEN("ARITHMETIC_OPERATOR"); }
+#line 39 "compiler\\src\\lexer\\lexer.l"
+{ return MINUS; }
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 42 "lexer.l"
-{ PRINT_TOKEN("ARITHMETIC_OPERATOR"); }
+#line 40 "compiler\\src\\lexer\\lexer.l"
+{ return MULTIPLY; }
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 43 "lexer.l"
-{ PRINT_TOKEN("ARITHMETIC_OPERATOR"); }
+#line 41 "compiler\\src\\lexer\\lexer.l"
+{ return DIVIDE; }
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 44 "lexer.l"
-{ PRINT_TOKEN("ARITHMETIC_OPERATOR"); }
+#line 42 "compiler\\src\\lexer\\lexer.l"
+{ return MODULO; }
 	YY_BREAK
-/* Relational and equality operators */
 case 18:
 YY_RULE_SETUP
-#line 47 "lexer.l"
-{ PRINT_TOKEN("RELATIONAL_OPERATOR"); }
+#line 44 "compiler\\src\\lexer\\lexer.l"
+{ return LE; }
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 48 "lexer.l"
-{ PRINT_TOKEN("RELATIONAL_OPERATOR"); }
+#line 45 "compiler\\src\\lexer\\lexer.l"
+{ return GE; }
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 49 "lexer.l"
-{ PRINT_TOKEN("RELATIONAL_OPERATOR"); }
+#line 46 "compiler\\src\\lexer\\lexer.l"
+{ return EQ; }
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
-#line 50 "lexer.l"
-{ PRINT_TOKEN("RELATIONAL_OPERATOR"); }
+#line 47 "compiler\\src\\lexer\\lexer.l"
+{ return NE; }
 	YY_BREAK
 case 22:
 YY_RULE_SETUP
-#line 51 "lexer.l"
-{ PRINT_TOKEN("RELATIONAL_OPERATOR"); }
+#line 48 "compiler\\src\\lexer\\lexer.l"
+{ return LT; }
 	YY_BREAK
 case 23:
 YY_RULE_SETUP
-#line 52 "lexer.l"
-{ PRINT_TOKEN("RELATIONAL_OPERATOR"); }
+#line 49 "compiler\\src\\lexer\\lexer.l"
+{ return GT; }
 	YY_BREAK
-/* Logical operators */
 case 24:
 YY_RULE_SETUP
-#line 55 "lexer.l"
-{ PRINT_TOKEN("LOGICAL_OPERATOR"); }
+#line 51 "compiler\\src\\lexer\\lexer.l"
+{ return AND; }
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 56 "lexer.l"
-{ PRINT_TOKEN("LOGICAL_OPERATOR"); }
+#line 52 "compiler\\src\\lexer\\lexer.l"
+{ return OR; }
 	YY_BREAK
 case 26:
 YY_RULE_SETUP
-#line 57 "lexer.l"
-{ PRINT_TOKEN("LOGICAL_OPERATOR"); }
+#line 53 "compiler\\src\\lexer\\lexer.l"
+{ return NOT; }
 	YY_BREAK
-/* Assignment operator */
 case 27:
 YY_RULE_SETUP
-#line 60 "lexer.l"
-{ PRINT_TOKEN("ASSIGNMENT_OPERATOR"); }
+#line 55 "compiler\\src\\lexer\\lexer.l"
+{ return ASSIGN; }
 	YY_BREAK
-/* Delimiters — using [{] / [}] to avoid flex "{...}" ambiguity */
 case 28:
 YY_RULE_SETUP
-#line 63 "lexer.l"
-{ PRINT_TOKEN("DELIMITER"); }
+#line 57 "compiler\\src\\lexer\\lexer.l"
+{ return LBRACE; }
 	YY_BREAK
 case 29:
 YY_RULE_SETUP
-#line 64 "lexer.l"
-{ PRINT_TOKEN("DELIMITER"); }
+#line 58 "compiler\\src\\lexer\\lexer.l"
+{ return RBRACE; }
 	YY_BREAK
 case 30:
 YY_RULE_SETUP
-#line 65 "lexer.l"
-{ PRINT_TOKEN("DELIMITER"); }
+#line 59 "compiler\\src\\lexer\\lexer.l"
+{ return LPAREN; }
 	YY_BREAK
 case 31:
 YY_RULE_SETUP
-#line 66 "lexer.l"
-{ PRINT_TOKEN("DELIMITER"); }
+#line 60 "compiler\\src\\lexer\\lexer.l"
+{ return RPAREN; }
 	YY_BREAK
 case 32:
 YY_RULE_SETUP
-#line 67 "lexer.l"
-{ PRINT_TOKEN("DELIMITER"); }
+#line 61 "compiler\\src\\lexer\\lexer.l"
+{ return SEMICOLON; }
 	YY_BREAK
-/* Single-line comments */
 case 33:
 YY_RULE_SETUP
-#line 70 "lexer.l"
-{ /* ignore */ }
+#line 63 "compiler\\src\\lexer\\lexer.l"
+{ }
 	YY_BREAK
-/* Multi-line comments */
 case 34:
 YY_RULE_SETUP
-#line 73 "lexer.l"
+#line 65 "compiler\\src\\lexer\\lexer.l"
 { BEGIN(COMMENT); }
 	YY_BREAK
 case 35:
 YY_RULE_SETUP
-#line 74 "lexer.l"
+#line 66 "compiler\\src\\lexer\\lexer.l"
 { BEGIN(INITIAL); }
 	YY_BREAK
 case 36:
 /* rule 36 can match eol */
 YY_RULE_SETUP
-#line 75 "lexer.l"
-{ /* ignore */ }
+#line 67 "compiler\\src\\lexer\\lexer.l"
+{ }
 	YY_BREAK
 case 37:
 YY_RULE_SETUP
-#line 76 "lexer.l"
-{ /* ignore */ }
+#line 68 "compiler\\src\\lexer\\lexer.l"
+{ }
 	YY_BREAK
 case YY_STATE_EOF(COMMENT):
-#line 78 "lexer.l"
+#line 70 "compiler\\src\\lexer\\lexer.l"
 {
-    printf("LEXICAL ERROR: Unterminated comment at line %d\n", yylineno);
+    fprintf(stderr,
+            "LEXICAL ERROR: Unterminated comment at line %d\n",
+            yylineno);
     lexical_error_count++;
-    return 0;
+    return INVALID;
 }
 	YY_BREAK
-/* Ignore whitespace (also strips \r from CRLF input files) */
 case 38:
 /* rule 38 can match eol */
 YY_RULE_SETUP
-#line 85 "lexer.l"
-{ /* ignore */ }
+#line 78 "compiler\\src\\lexer\\lexer.l"
+{ }
 	YY_BREAK
-/* Invalid characters */
 case 39:
 YY_RULE_SETUP
-#line 88 "lexer.l"
+#line 80 "compiler\\src\\lexer\\lexer.l"
 {
-    printf("LEXICAL ERROR: Invalid character '%s' at line %d\n",
-           yytext, yylineno);
+    fprintf(stderr,
+            "LEXICAL ERROR: Invalid character '%s' at line %d\n",
+            yytext,
+            yylineno);
     lexical_error_count++;
+    return INVALID;
 }
 	YY_BREAK
 case 40:
 YY_RULE_SETUP
-#line 94 "lexer.l"
+#line 89 "compiler\\src\\lexer\\lexer.l"
 ECHO;
 	YY_BREAK
-#line 1052 "lexer.c"
+#line 1046 "compiler\\src\\lexer\\lexer.c"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -2058,34 +2052,7 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 94 "lexer.l"
+#line 89 "compiler\\src\\lexer\\lexer.l"
 
 
 
-int main(int argc, char **argv)
-{
-    printf("========== LEXICAL ANALYSIS ==========\n\n");
-
-    if (argc > 1) {
-        FILE *f = fopen(argv[1], "r");
-        if (!f) {
-            perror("fopen");
-            return 2;
-        }
-        yyin = f;
-    }
-
-    yylex();
-
-    printf("\n======================================\n");
-
-    if (lexical_error_count == 0) {
-        printf("Lexical analysis completed successfully.\n");
-        printf("No lexical errors found.\n");
-    } else {
-        printf("Lexical analysis completed with %d error(s).\n",
-               lexical_error_count);
-    }
-
-    return lexical_error_count == 0 ? 0 : 1;
-}
