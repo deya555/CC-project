@@ -1,6 +1,8 @@
 
 %{
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include "../parser/parser.tab.h"
 
 int line_num = 1;
@@ -8,7 +10,6 @@ int line_num = 1;
 
 DIGIT   [0-9]
 ID      [a-zA-Z_][a-zA-Z0-9_]*
-NUMBER  {DIGIT}+(\.{DIGIT}+)?
 
 %%
 
@@ -34,10 +35,20 @@ NUMBER  {DIGIT}+(\.{DIGIT}+)?
 "&&"                    { return AND; }
 "||"                    { return OR; }
 
-{DIGIT}+                { return INT_CONST; }
-{DIGIT}+"."{DIGIT}+     { return FLOAT_CONST; }
+{DIGIT}+"."{DIGIT}+     {
+                            yylval.float_value = atof(yytext);
+                            return FLOAT_CONST;
+                        }
 
-{ID}                    { return ID; }
+{DIGIT}+                {
+                            yylval.int_value = atoi(yytext);
+                            return INT_CONST;
+                        }
+
+{ID}                    {
+                            yylval.string = strdup(yytext);
+                            return ID;
+                        }
 
 "+"                     { return '+'; }
 "-"                     { return '-'; }
