@@ -5,6 +5,7 @@
 %{
 #include <stdio.h>
 #include "../parser/parser.tab.h"
+#include "../ast/ast.h"
 
 int lexical_error_count = 0;
 %}
@@ -31,9 +32,20 @@ INTEGER     {DIGIT}+
 "true"      { return TRUE; }
 "false"     { return FALSE; }
 
-{FLOAT_NUM} { return FLOAT_LITERAL; }
-{INTEGER}   { return INTEGER_LITERAL; }
-{IDENTIFIER} { return IDENTIFIER; }
+{FLOAT_NUM} {
+    yylval.text = ast_copy(yytext);
+    return FLOAT_LITERAL;
+}
+
+{INTEGER} {
+    yylval.text = ast_copy(yytext);
+    return INTEGER_LITERAL;
+}
+
+{IDENTIFIER} {
+    yylval.text = ast_copy(yytext);
+    return IDENTIFIER;
+}
 
 "+"         { return PLUS; }
 "-"         { return MINUS; }
@@ -68,9 +80,12 @@ INTEGER     {DIGIT}+
 <COMMENT>.   { }
 
 <COMMENT><<EOF>> {
-    fprintf(stderr,
-            "LEXICAL ERROR: Unterminated comment at line %d\n",
-            yylineno);
+    fprintf(
+        stderr,
+        "LEXICAL ERROR: Unterminated comment at line %d\n",
+        yylineno
+    );
+
     lexical_error_count++;
     return INVALID;
 }
@@ -78,10 +93,13 @@ INTEGER     {DIGIT}+
 [ \t\r\n]+  { }
 
 . {
-    fprintf(stderr,
-            "LEXICAL ERROR: Invalid character '%s' at line %d\n",
-            yytext,
-            yylineno);
+    fprintf(
+        stderr,
+        "LEXICAL ERROR: Invalid character '%s' at line %d\n",
+        yytext,
+        yylineno
+    );
+
     lexical_error_count++;
     return INVALID;
 }
