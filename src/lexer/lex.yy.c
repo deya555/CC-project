@@ -369,8 +369,8 @@ static void yy_fatal_error (yyconst char msg[]  );
 	*yy_cp = '\0'; \
 	(yy_c_buf_p) = yy_cp;
 
-#define YY_NUM_RULES 37
-#define YY_END_OF_BUFFER 38
+#define YY_NUM_RULES 38
+#define YY_END_OF_BUFFER 39
 /* This struct is not used in this scanner,
    but its presence is necessary. */
 struct yy_trans_info
@@ -380,13 +380,13 @@ struct yy_trans_info
 	};
 static yyconst flex_int16_t yy_accept[75] =
     {   0,
-        0,    0,   38,   36,    2,    3,   27,   23,   36,   28,
-       29,   21,   19,   33,   20,   22,   34,   32,   25,   24,
-       26,   35,   35,   35,   35,   35,   35,   35,   35,   30,
-       36,   31,    2,   14,   17,    1,    0,   34,   15,   13,
-       16,   35,   35,   35,   35,   35,    7,   35,   35,   35,
-       35,   18,    1,   34,   35,   35,   35,   35,    4,   35,
-       35,   35,    6,    8,   35,   35,   35,   11,   35,   12,
+        0,    0,   39,   37,    2,    3,   30,   26,   37,   31,
+       32,   24,   22,   36,   23,   25,   19,   35,   28,   27,
+       29,   21,   21,   21,   21,   21,   21,   21,   21,   33,
+       37,   34,    2,   14,   17,    1,    0,   19,   15,   13,
+       16,   21,   21,   21,   21,   21,    7,   21,   21,   21,
+       21,   18,    1,   20,   21,   21,   21,   21,    4,   21,
+       21,   21,    6,    8,   21,   21,   21,   11,   21,   12,
         5,   10,    9,    0
     } ;
 
@@ -507,9 +507,10 @@ char *yytext;
 #line 1 "src/lexer/lexer.l"
 #line 3 "src/lexer/lexer.l"
 #include <stdio.h>
+#include "../parser/parser.tab.h"
 
 int line_num = 1;
-#line 513 "src/lexer/lex.yy.c"
+#line 514 "src/lexer/lex.yy.c"
 
 #define INITIAL 0
 
@@ -696,10 +697,10 @@ YY_DECL
 	register char *yy_cp, *yy_bp;
 	register int yy_act;
     
-#line 12 "src/lexer/lexer.l"
+#line 13 "src/lexer/lexer.l"
 
 
-#line 703 "src/lexer/lex.yy.c"
+#line 704 "src/lexer/lex.yy.c"
 
 	if ( !(yy_init) )
 		{
@@ -784,191 +785,200 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 14 "src/lexer/lexer.l"
+#line 15 "src/lexer/lexer.l"
 { /* Ignore comments */ }
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 16 "src/lexer/lexer.l"
+#line 17 "src/lexer/lexer.l"
 { /* Ignore spaces and tabs */ }
 	YY_BREAK
 case 3:
 /* rule 3 can match eol */
 YY_RULE_SETUP
-#line 17 "src/lexer/lexer.l"
+#line 18 "src/lexer/lexer.l"
 { line_num++; }
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 19 "src/lexer/lexer.l"
-{ printf("KEYWORD(int)\n"); }
+#line 20 "src/lexer/lexer.l"
+{ return T_INT; }
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 20 "src/lexer/lexer.l"
-{ printf("KEYWORD(float)\n"); }
+#line 21 "src/lexer/lexer.l"
+{ return T_FLOAT; }
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 21 "src/lexer/lexer.l"
-{ printf("KEYWORD(bool)\n"); }
+#line 22 "src/lexer/lexer.l"
+{ return T_BOOL; }
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 22 "src/lexer/lexer.l"
-{ printf("KEYWORD(if)\n"); }
+#line 23 "src/lexer/lexer.l"
+{ return T_IF; }
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 23 "src/lexer/lexer.l"
-{ printf("KEYWORD(else)\n"); }
+#line 24 "src/lexer/lexer.l"
+{ return T_ELSE; }
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 24 "src/lexer/lexer.l"
-{ printf("KEYWORD(while)\n"); }
+#line 25 "src/lexer/lexer.l"
+{ return T_WHILE; }
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 25 "src/lexer/lexer.l"
-{ printf("KEYWORD(print)\n"); }
+#line 26 "src/lexer/lexer.l"
+{ return T_PRINT; }
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 26 "src/lexer/lexer.l"
-{ printf("KEYWORD(true)\n"); }
+#line 27 "src/lexer/lexer.l"
+{ return T_TRUE; }
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 27 "src/lexer/lexer.l"
-{ printf("KEYWORD(false)\n"); }
+#line 28 "src/lexer/lexer.l"
+{ return T_FALSE; }
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 29 "src/lexer/lexer.l"
-{ printf("OP(==)\n"); }
+#line 30 "src/lexer/lexer.l"
+{ return EQ; }
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 30 "src/lexer/lexer.l"
-{ printf("OP(!=)\n"); }
+#line 31 "src/lexer/lexer.l"
+{ return NE; }
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 31 "src/lexer/lexer.l"
-{ printf("OP(<=)\n"); }
+#line 32 "src/lexer/lexer.l"
+{ return LE; }
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 32 "src/lexer/lexer.l"
-{ printf("OP(>=)\n"); }
+#line 33 "src/lexer/lexer.l"
+{ return GE; }
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 33 "src/lexer/lexer.l"
-{ printf("OP(&&)\n"); }
+#line 34 "src/lexer/lexer.l"
+{ return AND; }
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 34 "src/lexer/lexer.l"
-{ printf("OP(||)\n"); }
+#line 35 "src/lexer/lexer.l"
+{ return OR; }
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 36 "src/lexer/lexer.l"
-{ printf("OP(+)\n"); }
+#line 37 "src/lexer/lexer.l"
+{ return INT_CONST; }
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 37 "src/lexer/lexer.l"
-{ printf("OP(-)\n"); }
+#line 38 "src/lexer/lexer.l"
+{ return FLOAT_CONST; }
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
-#line 38 "src/lexer/lexer.l"
-{ printf("OP(*)\n"); }
+#line 40 "src/lexer/lexer.l"
+{ return ID; }
 	YY_BREAK
 case 22:
 YY_RULE_SETUP
-#line 39 "src/lexer/lexer.l"
-{ printf("OP(/)\n"); }
+#line 42 "src/lexer/lexer.l"
+{ return '+'; }
 	YY_BREAK
 case 23:
 YY_RULE_SETUP
-#line 40 "src/lexer/lexer.l"
-{ printf("OP(%%)\n"); }
+#line 43 "src/lexer/lexer.l"
+{ return '-'; }
 	YY_BREAK
 case 24:
 YY_RULE_SETUP
-#line 41 "src/lexer/lexer.l"
-{ printf("OP(=)\n"); }
+#line 44 "src/lexer/lexer.l"
+{ return '*'; }
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 42 "src/lexer/lexer.l"
-{ printf("OP(<)\n"); }
+#line 45 "src/lexer/lexer.l"
+{ return '/'; }
 	YY_BREAK
 case 26:
 YY_RULE_SETUP
-#line 43 "src/lexer/lexer.l"
-{ printf("OP(>)\n"); }
+#line 46 "src/lexer/lexer.l"
+{ return '%'; }
 	YY_BREAK
 case 27:
 YY_RULE_SETUP
-#line 44 "src/lexer/lexer.l"
-{ printf("OP(!)\n"); }
+#line 47 "src/lexer/lexer.l"
+{ return '='; }
 	YY_BREAK
 case 28:
 YY_RULE_SETUP
-#line 46 "src/lexer/lexer.l"
-{ printf("LPAREN\n"); }
+#line 48 "src/lexer/lexer.l"
+{ return '<'; }
 	YY_BREAK
 case 29:
 YY_RULE_SETUP
-#line 47 "src/lexer/lexer.l"
-{ printf("RPAREN\n"); }
+#line 49 "src/lexer/lexer.l"
+{ return '>'; }
 	YY_BREAK
 case 30:
 YY_RULE_SETUP
-#line 48 "src/lexer/lexer.l"
-{ printf("LBRACE\n"); }
+#line 50 "src/lexer/lexer.l"
+{ return '!'; }
 	YY_BREAK
 case 31:
 YY_RULE_SETUP
-#line 49 "src/lexer/lexer.l"
-{ printf("RBRACE\n"); }
+#line 52 "src/lexer/lexer.l"
+{ return '('; }
 	YY_BREAK
 case 32:
 YY_RULE_SETUP
-#line 50 "src/lexer/lexer.l"
-{ printf("SEMI\n"); }
+#line 53 "src/lexer/lexer.l"
+{ return ')'; }
 	YY_BREAK
 case 33:
 YY_RULE_SETUP
-#line 51 "src/lexer/lexer.l"
-{ printf("COMMA\n"); }
+#line 54 "src/lexer/lexer.l"
+{ return '{'; }
 	YY_BREAK
 case 34:
 YY_RULE_SETUP
-#line 53 "src/lexer/lexer.l"
-{ printf("NUMBER(%s)\n", yytext); }
+#line 55 "src/lexer/lexer.l"
+{ return '}'; }
 	YY_BREAK
 case 35:
 YY_RULE_SETUP
-#line 54 "src/lexer/lexer.l"
-{ printf("ID(%s)\n", yytext); }
+#line 56 "src/lexer/lexer.l"
+{ return ';'; }
 	YY_BREAK
 case 36:
 YY_RULE_SETUP
-#line 56 "src/lexer/lexer.l"
-{ printf("LEXICAL ERROR line %d: unexpected character '%s'\n", line_num, yytext); }
+#line 57 "src/lexer/lexer.l"
+{ return ','; }
 	YY_BREAK
 case 37:
 YY_RULE_SETUP
-#line 58 "src/lexer/lexer.l"
+#line 59 "src/lexer/lexer.l"
+{
+                            printf("Lexical error at line %d: unexpected character '%s'\n",
+                                   line_num, yytext);
+                            return yytext[0];
+                        }
+	YY_BREAK
+case 38:
+YY_RULE_SETUP
+#line 65 "src/lexer/lexer.l"
 ECHO;
 	YY_BREAK
-#line 972 "src/lexer/lex.yy.c"
+#line 982 "src/lexer/lex.yy.c"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -1966,19 +1976,12 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 58 "src/lexer/lexer.l"
+#line 65 "src/lexer/lexer.l"
 
 
 
 int yywrap(void)
 {
     return 1;
-}
-
-int main(void)
-{
-    printf("Enter your program (Ctrl+Z then Enter to finish):\n");
-    yylex();
-    return 0;
 }
 
