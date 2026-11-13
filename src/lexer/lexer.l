@@ -1,6 +1,7 @@
 
 %{
 #include <stdio.h>
+#include "../parser/parser.tab.h"
 
 int line_num = 1;
 %}
@@ -16,55 +17,54 @@ NUMBER  {DIGIT}+(\.{DIGIT}+)?
 [ \t\r]+                { /* Ignore spaces and tabs */ }
 \n                      { line_num++; }
 
-"int"                   { printf("KEYWORD(int)\n"); }
-"float"                 { printf("KEYWORD(float)\n"); }
-"bool"                  { printf("KEYWORD(bool)\n"); }
-"if"                    { printf("KEYWORD(if)\n"); }
-"else"                  { printf("KEYWORD(else)\n"); }
-"while"                 { printf("KEYWORD(while)\n"); }
-"print"                 { printf("KEYWORD(print)\n"); }
-"true"                  { printf("KEYWORD(true)\n"); }
-"false"                 { printf("KEYWORD(false)\n"); }
+"int"                   { return T_INT; }
+"float"                 { return T_FLOAT; }
+"bool"                  { return T_BOOL; }
+"if"                    { return T_IF; }
+"else"                  { return T_ELSE; }
+"while"                 { return T_WHILE; }
+"print"                 { return T_PRINT; }
+"true"                  { return T_TRUE; }
+"false"                 { return T_FALSE; }
 
-"=="                    { printf("OP(==)\n"); }
-"!="                    { printf("OP(!=)\n"); }
-"<="                    { printf("OP(<=)\n"); }
-">="                    { printf("OP(>=)\n"); }
-"&&"                    { printf("OP(&&)\n"); }
-"||"                    { printf("OP(||)\n"); }
+"=="                    { return EQ; }
+"!="                    { return NE; }
+"<="                    { return LE; }
+">="                    { return GE; }
+"&&"                    { return AND; }
+"||"                    { return OR; }
 
-"+"                     { printf("OP(+)\n"); }
-"-"                     { printf("OP(-)\n"); }
-"*"                     { printf("OP(*)\n"); }
-"/"                     { printf("OP(/)\n"); }
-"%"                     { printf("OP(%%)\n"); }
-"="                     { printf("OP(=)\n"); }
-"<"                     { printf("OP(<)\n"); }
-">"                     { printf("OP(>)\n"); }
-"!"                     { printf("OP(!)\n"); }
+{DIGIT}+                { return INT_CONST; }
+{DIGIT}+"."{DIGIT}+     { return FLOAT_CONST; }
 
-"("                     { printf("LPAREN\n"); }
-")"                     { printf("RPAREN\n"); }
-"{"                     { printf("LBRACE\n"); }
-"}"                     { printf("RBRACE\n"); }
-";"                     { printf("SEMI\n"); }
-","                     { printf("COMMA\n"); }
+{ID}                    { return ID; }
 
-{NUMBER}                { printf("NUMBER(%s)\n", yytext); }
-{ID}                    { printf("ID(%s)\n", yytext); }
+"+"                     { return '+'; }
+"-"                     { return '-'; }
+"*"                     { return '*'; }
+"/"                     { return '/'; }
+"%"                     { return '%'; }
+"="                     { return '='; }
+"<"                     { return '<'; }
+">"                     { return '>'; }
+"!"                     { return '!'; }
 
-.                       { printf("LEXICAL ERROR line %d: unexpected character '%s'\n", line_num, yytext); }
+"("                     { return '('; }
+")"                     { return ')'; }
+"{"                     { return '{'; }
+"}"                     { return '}'; }
+";"                     { return ';'; }
+","                     { return ','; }
+
+.                       {
+                            printf("Lexical error at line %d: unexpected character '%s'\n",
+                                   line_num, yytext);
+                            return yytext[0];
+                        }
 
 %%
 
 int yywrap(void)
 {
     return 1;
-}
-
-int main(void)
-{
-    printf("Enter your program (Ctrl+Z then Enter to finish):\n");
-    yylex();
-    return 0;
 }
