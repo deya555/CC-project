@@ -1,4 +1,5 @@
 
+
 #ifndef AST_H
 #define AST_H
 
@@ -27,6 +28,7 @@ typedef struct ASTNode {
 
     int int_value;
     float float_value;
+    int line;
 
     struct ASTNode *left;
     struct ASTNode *right;
