@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include "../ast/ast.h"
 #include "../symbol_table/symbol_table.h"
+#include "../semantic/semantic.h"
+#include "../tac/codegen.h"
 
 int yylex(void);
 void yyerror(const char *s);
@@ -13,16 +15,6 @@ extern int line_num;
 
 ASTNode *root = NULL;
 SymbolTable symbolTable;
-
-/* Check whether a variable has been declared */
-void checkDeclared(const char *name)
-{
-    if (lookupSymbol(&symbolTable, name) == NULL)
-    {
-        printf("Semantic error at line %d: '%s' is not declared.\n",
-               line_num, name);
-    }
-}
 
 char *copyText(const char *text)
 {
@@ -141,50 +133,33 @@ statement:
     }
     ;
 
+
+
 declaration:
     T_INT ID ';'
     {
         $$ = createNode(NODE_DECLARATION);
         $$->name = $2;
         $$->declared_type = copyText("int");
-
-        if (!insertSymbol(&symbolTable, $2, TYPE_INT, line_num))
-        {
-            printf("Semantic error at line %d: '%s' already declared in this scope.\n",
-                   line_num, $2);
-        }
     }
     | T_FLOAT ID ';'
     {
         $$ = createNode(NODE_DECLARATION);
         $$->name = $2;
         $$->declared_type = copyText("float");
-
-        if (!insertSymbol(&symbolTable, $2, TYPE_FLOAT, line_num))
-        {
-            printf("Semantic error at line %d: '%s' already declared in this scope.\n",
-                   line_num, $2);
-        }
     }
     | T_BOOL ID ';'
     {
         $$ = createNode(NODE_DECLARATION);
         $$->name = $2;
         $$->declared_type = copyText("bool");
-
-        if (!insertSymbol(&symbolTable, $2, TYPE_BOOL, line_num))
-        {
-            printf("Semantic error at line %d: '%s' already declared in this scope.\n",
-                   line_num, $2);
-        }
     }
     ;
 
+
 assignment:
-    assignment:
     ID '=' expression
     {
-        checkDeclared($1);
 
         $$ = createNode(NODE_ASSIGNMENT);
         $$->left = createIdentifierNode($1);
@@ -273,8 +248,6 @@ expression:
     }
     | ID
     {
-    checkDeclared($1);
-
     $$ = createIdentifierNode($1);
     free($1);
     }
@@ -309,6 +282,7 @@ void yyerror(const char *s)
             line_num, s);
 }
 
+
 int main(void)
 {
     initSymbolTable(&symbolTable);
@@ -322,12 +296,32 @@ int main(void)
         printf("\nAbstract Syntax Tree:\n");
         printAST(root);
 
+        int semanticErrors = analyzeSemantics(root, &symbolTable);
+
+        if (semanticErrors == 0)
+        {
+            printf("\nSemantic analysis successful!\n");
+        }
+        else
+        {
+            printf("\nSemantic analysis failed!\n");
+        }
+
         printSymbolTable(&symbolTable);
 
-        freeAST(root);
+        /* Generate Three Address Code */
+    if (semanticErrors == 0)
+    {
+        TACInstr *tac = generateTAC(root);
+        printTAC(tac);
+        freeTAC(tac);
+    }
+
+freeAST(root);
     }
 
     freeSymbolTable(&symbolTable);
 
     return 0;
 }
+
