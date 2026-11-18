@@ -1,4 +1,3 @@
-
 #ifndef SYMBOL_TABLE_H
 #define SYMBOL_TABLE_H
 
@@ -39,6 +38,12 @@ int insert_symbol(
 Symbol *lookup_symbol(
     SymbolTable *table,
     const char *name
+);
+
+Symbol *lookup_symbol_in_scope(
+    SymbolTable *table,
+    const char *name,
+    int scope_id
 );
 
 void print_symbol_table(SymbolTable *table);

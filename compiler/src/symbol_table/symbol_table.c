@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -153,6 +152,55 @@ Symbol *lookup_symbol(
     return NULL;
 }
 
+Symbol *lookup_symbol_in_scope(
+    SymbolTable *table,
+    const char *name,
+    int scope_id
+)
+{
+    Scope *scope;
+    Symbol *current;
+
+    if (table == NULL || name == NULL) {
+        return NULL;
+    }
+
+    /* Find the requested scope. */
+    scope = table->all_scopes;
+
+    while (scope != NULL) {
+
+        if (scope->scope_id == scope_id) {
+            break;
+        }
+
+        scope = scope->next;
+    }
+
+    if (scope == NULL) {
+        return NULL;
+    }
+
+    /* Search this scope and its parent scopes. */
+    while (scope != NULL) {
+
+        current = scope->symbols;
+
+        while (current != NULL) {
+
+            if (strcmp(current->name, name) == 0) {
+                return current;
+            }
+
+            current = current->next;
+        }
+
+        scope = scope->parent;
+    }
+
+    return NULL;
+}
+
 void print_symbol_table(SymbolTable *table)
 {
     Scope *scope;
@@ -213,7 +261,6 @@ void free_symbol_table(SymbolTable *table)
             free(current->name);
             free(current->type);
             free(current);
-
             current = next_symbol;
         }
 
