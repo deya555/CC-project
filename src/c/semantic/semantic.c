@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "semantic.h"
+int semantic_error_count = 0;
 
 static void analyze_node(ASTNode *node, SymbolTable *table);
 
@@ -120,6 +121,7 @@ static void analyze_declaration(ASTNode *node, SymbolTable *table)
                     !(strcmp(type_node->value, "float") == 0 &&
                       strcmp(actual_type, "int") == 0))
                 {
+                    semantic_error_count++;
                     printf(
                         "Type Error: Cannot initialize '%s' of type '%s' with '%s'.\n",
                         variable->value,
@@ -170,6 +172,7 @@ static void analyze_node(ASTNode *node, SymbolTable *table)
             analyze_declaration(node, table);
             return;
 
+      
         case AST_ASSIGNMENT:
         {
             ASTNode *left = node->child;
@@ -202,17 +205,21 @@ static void analyze_node(ASTNode *node, SymbolTable *table)
                 !(strcmp(symbol->type, "float") == 0 &&
                   strcmp(right_type, "int") == 0))
             {
+                semantic_error_count++;
                 printf(
                     "Type Error: Cannot assign '%s' to variable '%s' of type '%s'.\n",
                     right_type,
                     left->value,
                     symbol->type
                 );
+
+                return;
             }
 
             symbol->is_initialized = 1;
             return;
         }
+
 
         case AST_IDENTIFIER:
         {
@@ -221,6 +228,7 @@ static void analyze_node(ASTNode *node, SymbolTable *table)
 
             if (symbol == NULL)
             {
+                semantic_error_count++;
                 printf(
                     "Semantic Error: Undeclared variable '%s'.\n",
                     node->value
@@ -228,6 +236,7 @@ static void analyze_node(ASTNode *node, SymbolTable *table)
             }
             else if (!symbol->is_initialized)
             {
+                semantic_error_count++;
                 printf(
                     "Semantic Error: Variable '%s' used before initialization.\n",
                     node->value
@@ -261,6 +270,8 @@ void semantic_analyze(ASTNode *root, SymbolTable *table)
 {
     if (root == NULL || table == NULL)
         return;
+
+    semantic_error_count = 0;
 
     symbol_table_init(table);
     analyze_node(root, table);

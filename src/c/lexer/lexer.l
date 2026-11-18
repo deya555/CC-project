@@ -56,8 +56,9 @@ WHITESPACE  [ \t\r]+
 "continue"      { return CONTINUE; }
 "return"        { return RETURN; }
 
-"printf"        { return PRINTF; }
-"scanf"         { return SCANF; }
+"printf"         { return PRINTF; }
+"scanf"          { return SCANF; }
+"print"          { return PRINT; }
 
 "true"          { return TRUE; }
 "false"         { return FALSE; }

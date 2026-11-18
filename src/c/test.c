@@ -1,6 +1,18 @@
-bool flag = true;
-bool second = false;
+int x;
+int y;
+bool flag;
 
-bool result1 = !flag;
-bool result2 = flag && second;
-bool result3 = flag || second;
+x = 10;
+y = 0;
+flag = true;
+
+while (x > 0) {
+    y = y + x;
+    x = x - 1;
+}
+
+if (flag == true) {
+    print y;
+} else {
+    print x;
+}

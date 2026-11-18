@@ -432,6 +432,36 @@ static void generate_statement(ASTNode *node)
             break;
         }
 
+                case AST_PRINT:
+        {
+            if (node->value != NULL &&
+                strcmp(node->value, "print") == 0)
+            {
+                ASTNode *expression = node->child;
+
+                if (expression != NULL)
+                {
+                    char value[100];
+
+                    snprintf(value, sizeof(value), "%s",
+                             generate_expression(expression));
+
+                    char instruction[MAX_TAC_LENGTH];
+
+                    snprintf(instruction, sizeof(instruction),
+                             "print %s", value);
+
+                    emit(instruction);
+                }
+            }
+            else
+            {
+                /* Existing printf handling will be added later. */
+            }
+
+            break;
+        }
+
         case AST_IF:
             generate_if(node);
             break;

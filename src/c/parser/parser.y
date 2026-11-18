@@ -26,7 +26,7 @@ ASTNode *ast_root = NULL;
 %token IF ELSE WHILE FOR DO
 %token SWITCH CASE DEFAULT BREAK CONTINUE RETURN
 
-%token PRINTF SCANF
+%token PRINTF SCANF PRINT
 %token TRUE FALSE
 
 %token <text> INTEGER_LITERAL FLOAT_LITERAL
@@ -202,12 +202,17 @@ expression_statement:
     ;
 
 print_statement:
-    PRINTF LPAREN STRING_LITERAL print_arguments RPAREN SEMICOLON
-    {
-        $$ = ast_create(AST_PRINT, "printf");
-        ast_add_child($$, ast_create(AST_STRING, $3));
-        ast_add_child($$, $4);
-    }
+      PRINT expression SEMICOLON
+      {
+          $$ = ast_create(AST_PRINT, "print");
+          ast_add_child($$, $2);
+      }
+    | PRINTF LPAREN STRING_LITERAL print_arguments RPAREN SEMICOLON
+      {
+          $$ = ast_create(AST_PRINT, "printf");
+          ast_add_child($$, ast_create(AST_STRING, $3));
+          ast_add_child($$, $4);
+      }
     ;
 
 print_arguments:
@@ -416,17 +421,24 @@ int main(void)
 
         SymbolTable table;
 
-        printf("\nStarting Semantic Analysis...\n");
+    printf("\nStarting Semantic Analysis...\n");
 
-        semantic_analyze(ast_root, &table);
+semantic_analyze(ast_root, &table);
 
-        symbol_table_print(&table);
+symbol_table_print(&table);
 
-        printf("\nStarting TAC Generation...\n");
+if (semantic_error_count == 0)
+{
+    printf("\nStarting TAC Generation...\n");
 
-tac_generate(ast_root);
-tac_print();
-tac_free();
+    tac_generate(ast_root);
+    tac_print();
+    tac_free();
+}
+else
+{
+    printf("\nTAC Generation Skipped Due to Semantic Errors.\n");
+}
 
         ast_free(ast_root);
     }
