@@ -12,22 +12,23 @@ static int instruction_count = 0;
 static int temp_count = 0;
 static int label_count = 0;
 
+/* Generate temporary variable */
 static char *new_temp(void)
 {
     static char temp[20];
-
-    sprintf(temp, "t%d", ++temp_count);
+    snprintf(temp, sizeof(temp), "t%d", ++temp_count);
     return temp;
 }
 
+/* Generate label */
 static char *new_label(void)
 {
     static char label[20];
-
-    sprintf(label, "L%d", ++label_count);
+    snprintf(label, sizeof(label), "L%d", ++label_count);
     return label;
 }
 
+/* Add TAC instruction */
 static void emit(const char *instruction)
 {
     if (instruction_count >= MAX_TAC_INSTRUCTIONS)
@@ -42,7 +43,7 @@ static void emit(const char *instruction)
     instruction_count++;
 }
 
-
+/* Check whether a node contains a number */
 static int is_number_node(ASTNode *node)
 {
     return node != NULL &&
@@ -50,6 +51,7 @@ static int is_number_node(ASTNode *node)
             node->type == AST_FLOAT);
 }
 
+/* Constant arithmetic operations */
 static int fold_binary_operation(
     const char *op,
     double left,
@@ -87,7 +89,11 @@ static int fold_binary_operation(
     return 1;
 }
 
-static int evaluate_constant(ASTNode *node, double *result, int *is_integer)
+/* Recursively evaluate constant expressions */
+static int evaluate_constant(
+    ASTNode *node,
+    double *result,
+    int *is_integer)
 {
     if (node == NULL)
         return 0;
@@ -151,6 +157,7 @@ static int evaluate_constant(ASTNode *node, double *result, int *is_integer)
     return 1;
 }
 
+/* Generate TAC for expressions */
 static char *generate_expression(ASTNode *node)
 {
     static char result_buffer[100];
@@ -161,7 +168,6 @@ static char *generate_expression(ASTNode *node)
     double constant_value;
     int is_integer;
 
-    /* Recursively fold the entire constant expression */
     if (evaluate_constant(node, &constant_value, &is_integer))
     {
         if (is_integer)
@@ -204,16 +210,16 @@ static char *generate_expression(ASTNode *node)
         snprintf(right_copy, sizeof(right_copy), "%s",
                  generate_expression(right));
 
-      char temp[20];
-snprintf(temp, sizeof(temp), "%s", new_temp());
+        char temp[20];
+        snprintf(temp, sizeof(temp), "%s", new_temp());
 
-char instruction[MAX_TAC_LENGTH];
+        char instruction[MAX_TAC_LENGTH];
 
-snprintf(instruction, sizeof(instruction),
-         "%s = %s %s %s",
-         temp, left_copy, node->value, right_copy);
+        snprintf(instruction, sizeof(instruction),
+                 "%s = %s %s %s",
+                 temp, left_copy, node->value, right_copy);
 
-emit(instruction);
+        emit(instruction);
 
         snprintf(result_buffer, sizeof(result_buffer),
                  "%s", temp);
@@ -226,6 +232,7 @@ emit(instruction);
 
 static void generate_statement(ASTNode *node);
 
+/* Generate TAC for if and if-else */
 static void generate_if(ASTNode *node)
 {
     ASTNode *condition = node->child;
@@ -286,6 +293,7 @@ static void generate_if(ASTNode *node)
     }
 }
 
+/* Generate TAC for while loops */
 static void generate_while(ASTNode *node)
 {
     ASTNode *condition = node->child;
@@ -327,6 +335,7 @@ static void generate_while(ASTNode *node)
     emit(instruction);
 }
 
+/* Generate TAC for statements */
 static void generate_statement(ASTNode *node)
 {
     if (node == NULL)
@@ -420,6 +429,68 @@ static void generate_statement(ASTNode *node)
     }
 }
 
+/* Check whether a name is a generated temporary */
+static int is_temporary(const char *name)
+{
+    return name != NULL &&
+           name[0] == 't' &&
+           name[1] >= '0' &&
+           name[1] <= '9';
+}
+
+/* Remove unused temporary assignments */
+static void eliminate_dead_temporaries(void)
+{
+    int i, j;
+    int changed;
+
+    do
+    {
+        changed = 0;
+
+        for (i = 0; i < instruction_count; i++)
+        {
+            char destination[50];
+            char extra[50];
+
+            if (sscanf(instructions[i], "%49s = %49s",
+                       destination, extra) != 2)
+                continue;
+
+            if (!is_temporary(destination))
+                continue;
+
+            int used = 0;
+
+            for (j = 0; j < instruction_count; j++)
+            {
+                if (i == j)
+                    continue;
+
+                if (strstr(instructions[j], destination) != NULL)
+                {
+                    used = 1;
+                    break;
+                }
+            }
+
+            if (!used)
+            {
+                for (j = i; j < instruction_count - 1; j++)
+                {
+                    strcpy(instructions[j], instructions[j + 1]);
+                }
+
+                instruction_count--;
+                changed = 1;
+                break;
+            }
+        }
+
+    } while (changed);
+}
+
+/* Main TAC generation function */
 void tac_generate(ASTNode *root)
 {
     instruction_count = 0;
@@ -427,8 +498,11 @@ void tac_generate(ASTNode *root)
     label_count = 0;
 
     generate_statement(root);
+
+    eliminate_dead_temporaries();
 }
 
+/* Print TAC */
 void tac_print(void)
 {
     int i;
@@ -441,6 +515,7 @@ void tac_print(void)
     printf("========================================\n");
 }
 
+/* Reset TAC data */
 void tac_free(void)
 {
     instruction_count = 0;
