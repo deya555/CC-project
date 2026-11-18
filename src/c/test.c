@@ -1,2 +1,2 @@
 int a = 10;
-a = "Hello";
+int a = 20;
