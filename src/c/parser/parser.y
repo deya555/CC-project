@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "../ast/ast.h"
+#include "../semantic/semantic.h"
+#include "../symbol_table/symbol_table.h"
 
 int yylex(void);
 void yyerror(const char *message);
@@ -398,21 +400,32 @@ void yyerror(const char *message)
     fprintf(stderr, "Syntax Error: %s\n", message);
 }
 
+
 int main(void)
 {
     printf("C Compiler Parser Started\n");
 
     if (yyparse() == 0)
     {
-        printf("Syntax Analysis Successful!\n");
+        printf("\nSyntax Analysis Successful!\n");
+
         printf("\n========== ABSTRACT SYNTAX TREE ==========\n");
-
         ast_print(ast_root);
-        ast_free(ast_root);
 
-        return 0;
+        SymbolTable table;
+
+        printf("\nStarting Semantic Analysis...\n");
+
+        semantic_analyze(ast_root, &table);
+
+        symbol_table_print(&table);
+
+        ast_free(ast_root);
+    }
+    else
+    {
+        printf("\nSyntax Analysis Failed!\n");
     }
 
-    printf("Syntax Analysis Failed!\n");
-    return 1;
+    return 0;
 }
