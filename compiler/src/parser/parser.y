@@ -1,4 +1,3 @@
-
 %code requires {
 #include "../ast/ast.h"
 }
@@ -7,14 +6,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "../ast/ast.h"
+#include "../symbol_table/symbol_table.h"
 
 extern int yylex(void);
 extern int yylineno;
 extern int lexical_error_count;
 
 int syntax_error_count = 0;
+int symbol_error_count = 0;
 
 ASTNode *ast_root = NULL;
+
+SymbolTable symbol_table;
 
 void yyerror(const char *message);
 %}
@@ -106,6 +109,25 @@ type
 declaration
     : type IDENTIFIER SEMICOLON
       {
+          int declaration_line = yylineno;
+
+          if (!insert_symbol(
+                  &symbol_table,
+                  $2,
+                  $1,
+                  declaration_line
+              )) {
+              fprintf(
+                  stderr,
+                  "SYMBOL TABLE ERROR at line %d: "
+                  "Variable '%s' already declared in this scope.\n",
+                  declaration_line,
+                  $2
+              );
+
+              symbol_error_count++;
+          }
+
           $$ = ast_create("VariableDeclaration", $1);
 
           ast_add_child(
@@ -118,6 +140,25 @@ declaration
       }
     | type IDENTIFIER ASSIGN expression SEMICOLON
       {
+          int declaration_line = yylineno;
+
+          if (!insert_symbol(
+                  &symbol_table,
+                  $2,
+                  $1,
+                  declaration_line
+              )) {
+              fprintf(
+                  stderr,
+                  "SYMBOL TABLE ERROR at line %d: "
+                  "Variable '%s' already declared in this scope.\n",
+                  declaration_line,
+                  $2
+              );
+
+              symbol_error_count++;
+          }
+
           $$ = ast_create("VariableDeclaration", $1);
 
           ast_add_child(
@@ -186,10 +227,16 @@ while_statement
     ;
 
 block
-    : LBRACE statement_list RBRACE
+    : LBRACE
+      {
+          enter_scope(&symbol_table);
+      }
+      statement_list RBRACE
       {
           $$ = ast_create("Block", NULL);
-          ast_add_child($$, $2);
+          ast_add_child($$, $3);
+
+          exit_scope(&symbol_table);
       }
     ;
 
@@ -329,6 +376,8 @@ int main(void)
 {
     int result;
 
+    symbol_table_init(&symbol_table);
+
     printf("========== SYNTAX ANALYSIS ==========\n\n");
 
     result = yyparse();
@@ -347,16 +396,29 @@ int main(void)
 
         ast_print(ast_root, 0);
 
-        ast_free(ast_root);
+        printf("\n");
+        print_symbol_table(&symbol_table);
 
-        return 0;
+        if (symbol_error_count == 0) {
+            printf("\nSymbol Table analysis completed successfully.\n");
+        } else {
+            printf("\nSymbol Table analysis completed with errors.\n");
+            printf("Symbol errors: %d\n", symbol_error_count);
+        }
+
+        ast_free(ast_root);
+        free_symbol_table(&symbol_table);
+
+        return symbol_error_count == 0 ? 0 : 1;
     }
 
     printf("Syntax analysis completed with errors.\n");
     printf("Syntax errors: %d\n", syntax_error_count);
     printf("Lexical errors: %d\n", lexical_error_count);
+    printf("Symbol errors: %d\n", symbol_error_count);
 
     ast_free(ast_root);
+    free_symbol_table(&symbol_table);
 
     return 1;
 }

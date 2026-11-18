@@ -34,7 +34,7 @@
 /* "%code requires" blocks.  */
 
 /* Line 1685 of yacc.c  */
-#line 2 "compiler\\src\\parser\\parser.y"
+#line 1 "compiler\\src\\parser\\parser.y"
 
 #include "../ast/ast.h"
 
@@ -94,7 +94,7 @@ typedef union YYSTYPE
 {
 
 /* Line 1685 of yacc.c  */
-#line 22 "compiler\\src\\parser\\parser.y"
+#line 25 "compiler\\src\\parser\\parser.y"
 
     char *text;
     ASTNode *node;
