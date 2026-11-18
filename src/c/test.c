@@ -1,17 +1,5 @@
-// // This is a single-line comment
-// int a = 10;
-
-// /*
-//    This is a multi-line comment.
-//    The compiler should ignore all of this.
-// */
-
-// if (a > 5) {
-//     int b = 20;
-// }
-
-// b = 30;
-
-int a = 10;
-int b = 20;
-int c = a + b * 5;
+int a = 10 + 20;
+int b = 5 * 4 + 2;
+int c = a + b;
+int d = (2 + 3) * 4;
+int e = 10 % 3;

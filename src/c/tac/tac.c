@@ -10,15 +10,22 @@
 static char instructions[MAX_TAC_INSTRUCTIONS][MAX_TAC_LENGTH];
 static int instruction_count = 0;
 static int temp_count = 0;
+static int label_count = 0;
 
 static char *new_temp(void)
 {
     static char temp[20];
 
-    temp_count++;
-    sprintf(temp, "t%d", temp_count);
-
+    sprintf(temp, "t%d", ++temp_count);
     return temp;
+}
+
+static char *new_label(void)
+{
+    static char label[20];
+
+    sprintf(label, "L%d", ++label_count);
+    return label;
 }
 
 static void emit(const char *instruction)
@@ -29,18 +36,153 @@ static void emit(const char *instruction)
         return;
     }
 
-    strcpy(instructions[instruction_count], instruction);
+    snprintf(instructions[instruction_count],
+             MAX_TAC_LENGTH, "%s", instruction);
+
     instruction_count++;
+}
+
+
+static int is_number_node(ASTNode *node)
+{
+    return node != NULL &&
+           (node->type == AST_INTEGER ||
+            node->type == AST_FLOAT);
+}
+
+static int fold_binary_operation(
+    const char *op,
+    double left,
+    double right,
+    double *result)
+{
+    if (strcmp(op, "+") == 0)
+        *result = left + right;
+
+    else if (strcmp(op, "-") == 0)
+        *result = left - right;
+
+    else if (strcmp(op, "*") == 0)
+        *result = left * right;
+
+    else if (strcmp(op, "/") == 0)
+    {
+        if (right == 0)
+            return 0;
+
+        *result = left / right;
+    }
+
+    else if (strcmp(op, "%") == 0)
+    {
+        if ((int)right == 0)
+            return 0;
+
+        *result = (int)left % (int)right;
+    }
+
+    else
+        return 0;
+
+    return 1;
+}
+
+static int evaluate_constant(ASTNode *node, double *result, int *is_integer)
+{
+    if (node == NULL)
+        return 0;
+
+    if (node->type == AST_INTEGER)
+    {
+        *result = strtod(node->value, NULL);
+        *is_integer = 1;
+        return 1;
+    }
+
+    if (node->type == AST_FLOAT)
+    {
+        *result = strtod(node->value, NULL);
+        *is_integer = 0;
+        return 1;
+    }
+
+    if (node->type != AST_BINARY_EXPR)
+        return 0;
+
+    ASTNode *left = node->child;
+    ASTNode *right = left ? left->next : NULL;
+
+    double left_value, right_value;
+    int left_integer, right_integer;
+
+    if (!evaluate_constant(left, &left_value, &left_integer))
+        return 0;
+
+    if (!evaluate_constant(right, &right_value, &right_integer))
+        return 0;
+
+    if (strcmp(node->value, "%") == 0)
+    {
+        if (!left_integer || !right_integer ||
+            (long long)right_value == 0)
+            return 0;
+
+        *result = (long long)left_value % (long long)right_value;
+        *is_integer = 1;
+        return 1;
+    }
+
+    if (strcmp(node->value, "/") == 0 &&
+        left_integer && right_integer)
+    {
+        if ((long long)right_value == 0)
+            return 0;
+
+        *result = (long long)left_value / (long long)right_value;
+        *is_integer = 1;
+        return 1;
+    }
+
+    if (!fold_binary_operation(
+            node->value, left_value, right_value, result))
+        return 0;
+
+    *is_integer = left_integer && right_integer;
+    return 1;
 }
 
 static char *generate_expression(ASTNode *node)
 {
+    static char result_buffer[100];
+
     if (node == NULL)
         return "";
 
-    if (node->type == AST_INTEGER ||
+    double constant_value;
+    int is_integer;
+
+    /* Recursively fold the entire constant expression */
+    if (evaluate_constant(node, &constant_value, &is_integer))
+    {
+        if (is_integer)
+        {
+            snprintf(result_buffer, sizeof(result_buffer),
+                     "%lld", (long long)constant_value);
+        }
+        else
+        {
+            snprintf(result_buffer, sizeof(result_buffer),
+                     "%g", constant_value);
+        }
+
+        return result_buffer;
+    }
+
+    if (node->type == AST_IDENTIFIER ||
+        node->type == AST_INTEGER ||
         node->type == AST_FLOAT ||
-        node->type == AST_IDENTIFIER)
+        node->type == AST_STRING ||
+        node->type == AST_CHAR)
     {
         return node->value;
     }
@@ -50,32 +192,139 @@ static char *generate_expression(ASTNode *node)
         ASTNode *left = node->child;
         ASTNode *right = left ? left->next : NULL;
 
-        char *left_value = generate_expression(left);
+        if (left == NULL || right == NULL)
+            return "";
+
         char left_copy[100];
-
-        strcpy(left_copy, left_value);
-
-        char *right_value = generate_expression(right);
         char right_copy[100];
 
-        strcpy(right_copy, right_value);
+        snprintf(left_copy, sizeof(left_copy), "%s",
+                 generate_expression(left));
 
-        char *temp = new_temp();
+        snprintf(right_copy, sizeof(right_copy), "%s",
+                 generate_expression(right));
 
-        char instruction[MAX_TAC_LENGTH];
+      char temp[20];
+snprintf(temp, sizeof(temp), "%s", new_temp());
 
-        sprintf(instruction, "%s = %s %s %s",
-                temp,
-                left_copy,
-                node->value,
-                right_copy);
+char instruction[MAX_TAC_LENGTH];
 
-        emit(instruction);
+snprintf(instruction, sizeof(instruction),
+         "%s = %s %s %s",
+         temp, left_copy, node->value, right_copy);
 
-        return temp;
+emit(instruction);
+
+        snprintf(result_buffer, sizeof(result_buffer),
+                 "%s", temp);
+
+        return result_buffer;
     }
 
     return node->value ? node->value : "";
+}
+
+static void generate_statement(ASTNode *node);
+
+static void generate_if(ASTNode *node)
+{
+    ASTNode *condition = node->child;
+    ASTNode *then_branch = condition ? condition->next : NULL;
+    ASTNode *else_branch = then_branch ? then_branch->next : NULL;
+
+    if (condition == NULL || then_branch == NULL)
+        return;
+
+    char condition_copy[100];
+
+    snprintf(condition_copy, sizeof(condition_copy), "%s",
+             generate_expression(condition));
+
+    char else_label[20];
+    char end_label[20];
+
+    snprintf(else_label, sizeof(else_label), "%s", new_label());
+    snprintf(end_label, sizeof(end_label), "%s", new_label());
+
+    char instruction[MAX_TAC_LENGTH];
+
+    if (else_branch != NULL)
+    {
+        snprintf(instruction, sizeof(instruction),
+                 "ifFalse %s goto %s",
+                 condition_copy, else_label);
+        emit(instruction);
+
+        generate_statement(then_branch);
+
+        snprintf(instruction, sizeof(instruction),
+                 "goto %s", end_label);
+        emit(instruction);
+
+        snprintf(instruction, sizeof(instruction),
+                 "%s:", else_label);
+        emit(instruction);
+
+        generate_statement(else_branch);
+
+        snprintf(instruction, sizeof(instruction),
+                 "%s:", end_label);
+        emit(instruction);
+    }
+    else
+    {
+        snprintf(instruction, sizeof(instruction),
+                 "ifFalse %s goto %s",
+                 condition_copy, end_label);
+        emit(instruction);
+
+        generate_statement(then_branch);
+
+        snprintf(instruction, sizeof(instruction),
+                 "%s:", end_label);
+        emit(instruction);
+    }
+}
+
+static void generate_while(ASTNode *node)
+{
+    ASTNode *condition = node->child;
+    ASTNode *body = condition ? condition->next : NULL;
+
+    if (condition == NULL || body == NULL)
+        return;
+
+    char start_label[20];
+    char end_label[20];
+
+    snprintf(start_label, sizeof(start_label), "%s", new_label());
+    snprintf(end_label, sizeof(end_label), "%s", new_label());
+
+    char instruction[MAX_TAC_LENGTH];
+
+    snprintf(instruction, sizeof(instruction),
+             "%s:", start_label);
+    emit(instruction);
+
+    char condition_copy[100];
+
+    snprintf(condition_copy, sizeof(condition_copy), "%s",
+             generate_expression(condition));
+
+    snprintf(instruction, sizeof(instruction),
+             "ifFalse %s goto %s",
+             condition_copy, end_label);
+    emit(instruction);
+
+    generate_statement(body);
+
+    snprintf(instruction, sizeof(instruction),
+             "goto %s", start_label);
+    emit(instruction);
+
+    snprintf(instruction, sizeof(instruction),
+             "%s:", end_label);
+    emit(instruction);
 }
 
 static void generate_statement(ASTNode *node)
@@ -102,7 +351,6 @@ static void generate_statement(ASTNode *node)
         {
             ASTNode *type_node = node->child;
             ASTNode *variables = type_node ? type_node->next : NULL;
-
             ASTNode *variable = variables ? variables->child : NULL;
 
             while (variable != NULL)
@@ -110,12 +358,15 @@ static void generate_statement(ASTNode *node)
                 if (variable->type == AST_VARIABLE &&
                     variable->child != NULL)
                 {
-                    char *value = generate_expression(variable->child);
+                    char value[100];
+
+                    snprintf(value, sizeof(value), "%s",
+                             generate_expression(variable->child));
 
                     char instruction[MAX_TAC_LENGTH];
 
-                    sprintf(instruction, "%s = %s",
-                            variable->value, value);
+                    snprintf(instruction, sizeof(instruction),
+                             "%s = %s", variable->value, value);
 
                     emit(instruction);
                 }
@@ -132,17 +383,28 @@ static void generate_statement(ASTNode *node)
 
             if (left && right)
             {
-                char *value = generate_expression(right);
+                char value[100];
+
+                snprintf(value, sizeof(value), "%s",
+                         generate_expression(right));
 
                 char instruction[MAX_TAC_LENGTH];
 
-                sprintf(instruction, "%s = %s",
-                        left->value, value);
+                snprintf(instruction, sizeof(instruction),
+                         "%s = %s", left->value, value);
 
                 emit(instruction);
             }
             break;
         }
+
+        case AST_IF:
+            generate_if(node);
+            break;
+
+        case AST_WHILE:
+            generate_while(node);
+            break;
 
         default:
         {
@@ -162,6 +424,7 @@ void tac_generate(ASTNode *root)
 {
     instruction_count = 0;
     temp_count = 0;
+    label_count = 0;
 
     generate_statement(root);
 }
@@ -173,9 +436,7 @@ void tac_print(void)
     printf("\n========== THREE ADDRESS CODE ==========\n");
 
     for (i = 0; i < instruction_count; i++)
-    {
         printf("%s\n", instructions[i]);
-    }
 
     printf("========================================\n");
 }
@@ -184,4 +445,5 @@ void tac_free(void)
 {
     instruction_count = 0;
     temp_count = 0;
+    label_count = 0;
 }
