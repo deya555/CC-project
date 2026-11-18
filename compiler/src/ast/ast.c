@@ -1,3 +1,4 @@
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -40,10 +41,25 @@ ASTNode *ast_create(const char *kind, const char *value)
     node->kind = ast_copy(kind);
     node->value = ast_copy(value);
 
+    /* Default metadata */
+    node->line = 0;
+    node->scope_id = -1;
+
     node->first_child = NULL;
     node->next_sibling = NULL;
 
     return node;
+}
+
+/* Set source line and scope information */
+void ast_set_metadata(ASTNode *node, int line, int scope_id)
+{
+    if (node == NULL) {
+        return;
+    }
+
+    node->line = line;
+    node->scope_id = scope_id;
 }
 
 /* Add a child to a parent node */
