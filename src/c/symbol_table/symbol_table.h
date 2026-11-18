@@ -5,6 +5,7 @@
 #define MAX_SYMBOLS 100
 #define MAX_NAME_LENGTH 100
 #define MAX_TYPE_LENGTH 20
+#define MAX_SCOPES 50
 
 typedef struct
 {
@@ -19,18 +20,15 @@ typedef struct
     Symbol symbols[MAX_SYMBOLS];
     int count;
     int current_scope;
+    int scope_stack[MAX_SCOPES];
 } SymbolTable;
 
-// Initialize the symbol table
 void symbol_table_init(SymbolTable *table);
 
-// Enter a new scope
 void symbol_table_enter_scope(SymbolTable *table);
 
-// Exit the current scope
 void symbol_table_exit_scope(SymbolTable *table);
 
-// Add a variable to the symbol table
 int symbol_table_add(
     SymbolTable *table,
     const char *name,
@@ -38,13 +36,8 @@ int symbol_table_add(
     int is_initialized
 );
 
-// Search for a variable
-Symbol *symbol_table_lookup(
-    SymbolTable *table,
-    const char *name
-);
+Symbol *symbol_table_lookup(SymbolTable *table, const char *name);
 
-// Display all symbols
 void symbol_table_print(SymbolTable *table);
 
 #endif

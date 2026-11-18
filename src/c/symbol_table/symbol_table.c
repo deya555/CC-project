@@ -3,30 +3,37 @@
 #include <string.h>
 #include "symbol_table.h"
 
-// Initialize the symbol table
 void symbol_table_init(SymbolTable *table)
 {
     table->count = 0;
     table->current_scope = 0;
+    table->scope_stack[0] = 0;
 }
 
-// Enter a new scope
 void symbol_table_enter_scope(SymbolTable *table)
 {
-    table->current_scope++;
+    if (table->current_scope < MAX_SCOPES - 1)
+    {
+        table->current_scope++;
+        table->scope_stack[table->current_scope] =
+            table->current_scope;
+    }
+    else
+    {
+        printf("Error: Maximum scope depth exceeded!\n");
+    }
 }
 
-// Exit the current scope
 void symbol_table_exit_scope(SymbolTable *table)
 {
     if (table->current_scope > 0)
     {
-        // Remove symbols declared inside the exiting scope
         int new_count = 0;
 
         for (int i = 0; i < table->count; i++)
         {
-            if (table->symbols[i].scope_level < table->current_scope)
+            if (table->symbols[i].scope_level <
+                table->current_scope)
             {
                 table->symbols[new_count++] = table->symbols[i];
             }
@@ -37,7 +44,6 @@ void symbol_table_exit_scope(SymbolTable *table)
     }
 }
 
-// Add a variable to the symbol table
 int symbol_table_add(
     SymbolTable *table,
     const char *name,
@@ -50,13 +56,13 @@ int symbol_table_add(
         return 0;
     }
 
-    // Check for redeclaration in the same scope
     for (int i = 0; i < table->count; i++)
     {
         if (strcmp(table->symbols[i].name, name) == 0 &&
             table->symbols[i].scope_level == table->current_scope)
         {
-            printf("Semantic Error: Variable '%s' already declared in this scope.\n", name);
+            printf("Semantic Error: Variable '%s' already declared in this scope.\n",
+                   name);
             return 0;
         }
     }
@@ -77,10 +83,8 @@ int symbol_table_add(
     return 1;
 }
 
-// Search for a variable
 Symbol *symbol_table_lookup(SymbolTable *table, const char *name)
 {
-    // Search from the most recently declared symbol
     for (int i = table->count - 1; i >= 0; i--)
     {
         if (strcmp(table->symbols[i].name, name) == 0)
@@ -92,10 +96,10 @@ Symbol *symbol_table_lookup(SymbolTable *table, const char *name)
     return NULL;
 }
 
-// Display all symbols
 void symbol_table_print(SymbolTable *table)
 {
     printf("\n========== SYMBOL TABLE ==========\n");
+
     printf("%-20s %-15s %-15s %-15s\n",
            "Name", "Type", "Scope", "Initialized");
 
