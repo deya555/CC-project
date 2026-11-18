@@ -1,8 +1,45 @@
 
 #include <stdio.h>
 #include <string.h>
-
 #include "semantic.h"
+
+static void analyze_node(ASTNode *node, SymbolTable *table);
+
+static void analyze_declaration(ASTNode *node, SymbolTable *table)
+{
+    ASTNode *type_node = node->child;
+
+    if (type_node == NULL || type_node->next == NULL)
+        return;
+
+    ASTNode *variables_block = type_node->next;
+    ASTNode *variable = variables_block->child;
+
+    while (variable != NULL)
+    {
+        if (variable->type == AST_VARIABLE)
+        {
+            int initialized = (variable->child != NULL);
+
+            if (!symbol_table_add(
+                    table,
+                    variable->value,
+                    type_node->value,
+                    initialized))
+            {
+                printf("Semantic Error: Invalid declaration of '%s'.\n",
+                       variable->value);
+            }
+
+            if (variable->child != NULL)
+            {
+                analyze_node(variable->child, table);
+            }
+        }
+
+        variable = variable->next;
+    }
+}
 
 static void analyze_node(ASTNode *node, SymbolTable *table)
 {
@@ -11,37 +48,28 @@ static void analyze_node(ASTNode *node, SymbolTable *table)
 
     switch (node->type)
     {
-        case AST_DECLARATION:
+        case AST_PROGRAM:
         {
-            ASTNode *type_node = node->child;
-            ASTNode *variables = type_node ? type_node->next : NULL;
+            ASTNode *child = node->child;
 
-            while (variables != NULL)
+            while (child != NULL)
             {
-                if (variables->type == AST_VARIABLE)
-                {
-                    ASTNode *initializer = variables->child;
-
-                    int initialized = (initializer != NULL);
-
-                    if (!symbol_table_add(
-                            table,
-                            variables->value,
-                            type_node->value,
-                            initialized))
-                    {
-                        printf("Semantic analysis: declaration error.\n");
-                    }
-                }
-
-                variables = variables->next;
+                analyze_node(child, table);
+                child = child->next;
             }
-            break;
+
+            return;
         }
 
         case AST_BLOCK:
         {
-            symbol_table_enter_scope(table);
+            // The top-level statement block uses global scope.
+            // Nested blocks create their own scopes.
+            if (node->value != NULL &&
+                strcmp(node->value, "Block") == 0)
+            {
+                symbol_table_enter_scope(table);
+            }
 
             ASTNode *child = node->child;
 
@@ -51,7 +79,18 @@ static void analyze_node(ASTNode *node, SymbolTable *table)
                 child = child->next;
             }
 
-            symbol_table_exit_scope(table);
+            if (node->value != NULL &&
+                strcmp(node->value, "Block") == 0)
+            {
+                symbol_table_exit_scope(table);
+            }
+
+            return;
+        }
+
+        case AST_DECLARATION:
+        {
+            analyze_declaration(node, table);
             return;
         }
 
@@ -62,7 +101,8 @@ static void analyze_node(ASTNode *node, SymbolTable *table)
                 printf("Semantic Error: Undeclared variable '%s'.\n",
                        node->value);
             }
-            break;
+
+            return;
         }
 
         default:
@@ -84,6 +124,5 @@ void semantic_analyze(ASTNode *root, SymbolTable *table)
         return;
 
     symbol_table_init(table);
-
     analyze_node(root, table);
 }
