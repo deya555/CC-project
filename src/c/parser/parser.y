@@ -5,6 +5,7 @@
 #include "../ast/ast.h"
 #include "../semantic/semantic.h"
 #include "../symbol_table/symbol_table.h"
+#include "../tac/tac.h"
 
 int yylex(void);
 void yyerror(const char *message);
@@ -419,6 +420,12 @@ int main(void)
         semantic_analyze(ast_root, &table);
 
         symbol_table_print(&table);
+
+        printf("\nStarting TAC Generation...\n");
+
+tac_generate(ast_root);
+tac_print();
+tac_free();
 
         ast_free(ast_root);
     }
