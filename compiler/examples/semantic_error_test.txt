@@ -1,0 +1,17 @@
+int age = 20;
+float salary = 25000.5;
+bool active = true;
+
+int result = 5.5;
+
+age = true;
+
+unknown = 10;
+
+if (age) {
+    print(age);
+}
+
+while (active) {
+    print(salary);
+}

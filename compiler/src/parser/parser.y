@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include "../ast/ast.h"
 #include "../symbol_table/symbol_table.h"
+#include "../semantic/semantic.h"
 
 extern int yylex(void);
 extern int yylineno;
@@ -18,6 +19,19 @@ int symbol_error_count = 0;
 ASTNode *ast_root = NULL;
 
 SymbolTable symbol_table;
+
+ASTNode *create_node(const char *kind, const char *value)
+{
+    ASTNode *node = ast_create(kind, value);
+
+    ast_set_metadata(
+        node,
+        yylineno,
+        symbol_table.current_scope->scope_id
+    );
+
+    return node;
+}
 
 void yyerror(const char *message);
 %}
@@ -68,7 +82,7 @@ void yyerror(const char *message);
 program
     : statement_list
       {
-          $$ = ast_create("Program", NULL);
+          $$ = create_node("Program", NULL);
           ast_add_child($$, $1);
           ast_root = $$;
       }
@@ -77,7 +91,7 @@ program
 statement_list
     : /* empty */
       {
-          $$ = ast_create("StatementList", NULL);
+          $$ = create_node("StatementList", NULL);
       }
     | statement_list statement
       {
@@ -96,7 +110,7 @@ statement
     | error SEMICOLON
       {
           yyerrok;
-          $$ = ast_create("Error", NULL);
+          $$ = create_node("Error", NULL);
       }
     ;
 
@@ -128,11 +142,11 @@ declaration
               symbol_error_count++;
           }
 
-          $$ = ast_create("VariableDeclaration", $1);
+          $$ = create_node("VariableDeclaration", $1);
 
           ast_add_child(
               $$,
-              ast_create("Identifier", $2)
+              create_node("Identifier", $2)
           );
 
           free($1);
@@ -159,11 +173,11 @@ declaration
               symbol_error_count++;
           }
 
-          $$ = ast_create("VariableDeclaration", $1);
+          $$ = create_node("VariableDeclaration", $1);
 
           ast_add_child(
               $$,
-              ast_create("Identifier", $2)
+              create_node("Identifier", $2)
           );
 
           ast_add_child($$, $4);
@@ -176,11 +190,11 @@ declaration
 assignment
     : IDENTIFIER ASSIGN expression SEMICOLON
       {
-          $$ = ast_create("Assignment", NULL);
+          $$ = create_node("Assignment", NULL);
 
           ast_add_child(
               $$,
-              ast_create("Identifier", $1)
+              create_node("Identifier", $1)
           );
 
           ast_add_child($$, $3);
@@ -192,7 +206,7 @@ assignment
 print_statement
     : PRINT LPAREN expression RPAREN SEMICOLON
       {
-          $$ = ast_create("PrintStatement", NULL);
+          $$ = create_node("PrintStatement", NULL);
           ast_add_child($$, $3);
       }
     ;
@@ -201,14 +215,14 @@ if_statement
     : IF LPAREN expression RPAREN statement
       %prec IF_WITHOUT_ELSE
       {
-          $$ = ast_create("IfStatement", NULL);
+          $$ = create_node("IfStatement", NULL);
 
           ast_add_child($$, $3);
           ast_add_child($$, $5);
       }
     | IF LPAREN expression RPAREN statement ELSE statement
       {
-          $$ = ast_create("IfElseStatement", NULL);
+          $$ = create_node("IfElseStatement", NULL);
 
           ast_add_child($$, $3);
           ast_add_child($$, $5);
@@ -219,7 +233,7 @@ if_statement
 while_statement
     : WHILE LPAREN expression RPAREN statement
       {
-          $$ = ast_create("WhileStatement", NULL);
+          $$ = create_node("WhileStatement", NULL);
 
           ast_add_child($$, $3);
           ast_add_child($$, $5);
@@ -233,7 +247,7 @@ block
       }
       statement_list RBRACE
       {
-          $$ = ast_create("Block", NULL);
+          $$ = create_node("Block", NULL);
           ast_add_child($$, $3);
 
           exit_scope(&symbol_table);
@@ -243,90 +257,90 @@ block
 expression
     : expression PLUS expression
       {
-          $$ = ast_create("BinaryOperation", "+");
+          $$ = create_node("BinaryOperation", "+");
           ast_add_child($$, $1);
           ast_add_child($$, $3);
       }
     | expression MINUS expression
       {
-          $$ = ast_create("BinaryOperation", "-");
+          $$ = create_node("BinaryOperation", "-");
           ast_add_child($$, $1);
           ast_add_child($$, $3);
       }
     | expression MULTIPLY expression
       {
-          $$ = ast_create("BinaryOperation", "*");
+          $$ = create_node("BinaryOperation", "*");
           ast_add_child($$, $1);
           ast_add_child($$, $3);
       }
     | expression DIVIDE expression
       {
-          $$ = ast_create("BinaryOperation", "/");
+          $$ = create_node("BinaryOperation", "/");
           ast_add_child($$, $1);
           ast_add_child($$, $3);
       }
     | expression MODULO expression
       {
-          $$ = ast_create("BinaryOperation", "%");
+          $$ = create_node("BinaryOperation", "%");
           ast_add_child($$, $1);
           ast_add_child($$, $3);
       }
     | expression LT expression
       {
-          $$ = ast_create("RelationalOperation", "<");
+          $$ = create_node("RelationalOperation", "<");
           ast_add_child($$, $1);
           ast_add_child($$, $3);
       }
     | expression GT expression
       {
-          $$ = ast_create("RelationalOperation", ">");
+          $$ = create_node("RelationalOperation", ">");
           ast_add_child($$, $1);
           ast_add_child($$, $3);
       }
     | expression LE expression
       {
-          $$ = ast_create("RelationalOperation", "<=");
+          $$ = create_node("RelationalOperation", "<=");
           ast_add_child($$, $1);
           ast_add_child($$, $3);
       }
     | expression GE expression
       {
-          $$ = ast_create("RelationalOperation", ">=");
+          $$ = create_node("RelationalOperation", ">=");
           ast_add_child($$, $1);
           ast_add_child($$, $3);
       }
     | expression EQ expression
       {
-          $$ = ast_create("RelationalOperation", "==");
+          $$ = create_node("RelationalOperation", "==");
           ast_add_child($$, $1);
           ast_add_child($$, $3);
       }
     | expression NE expression
       {
-          $$ = ast_create("RelationalOperation", "!=");
+          $$ = create_node("RelationalOperation", "!=");
           ast_add_child($$, $1);
           ast_add_child($$, $3);
       }
     | expression AND expression
       {
-          $$ = ast_create("LogicalOperation", "&&");
+          $$ = create_node("LogicalOperation", "&&");
           ast_add_child($$, $1);
           ast_add_child($$, $3);
       }
     | expression OR expression
       {
-          $$ = ast_create("LogicalOperation", "||");
+          $$ = create_node("LogicalOperation", "||");
           ast_add_child($$, $1);
           ast_add_child($$, $3);
       }
     | NOT expression
       {
-          $$ = ast_create("UnaryOperation", "!");
+          $$ = create_node("UnaryOperation", "!");
           ast_add_child($$, $2);
       }
     | MINUS expression %prec UMINUS
       {
-          $$ = ast_create("UnaryOperation", "-");
+          $$ = create_node("UnaryOperation", "-");
           ast_add_child($$, $2);
       }
     | LPAREN expression RPAREN
@@ -335,26 +349,26 @@ expression
       }
     | IDENTIFIER
       {
-          $$ = ast_create("Identifier", $1);
+          $$ = create_node("Identifier", $1);
           free($1);
       }
     | INTEGER_LITERAL
       {
-          $$ = ast_create("IntegerLiteral", $1);
+          $$ = create_node("IntegerLiteral", $1);
           free($1);
       }
     | FLOAT_LITERAL
       {
-          $$ = ast_create("FloatLiteral", $1);
+          $$ = create_node("FloatLiteral", $1);
           free($1);
       }
     | TRUE
       {
-          $$ = ast_create("BooleanLiteral", "true");
+          $$ = create_node("BooleanLiteral", "true");
       }
     | FALSE
       {
-          $$ = ast_create("BooleanLiteral", "false");
+          $$ = create_node("BooleanLiteral", "false");
       }
     ;
 
@@ -375,6 +389,7 @@ void yyerror(const char *message)
 int main(void)
 {
     int result;
+    int semantic_errors = 0;
 
     symbol_table_init(&symbol_table);
 
@@ -400,16 +415,29 @@ int main(void)
         print_symbol_table(&symbol_table);
 
         if (symbol_error_count == 0) {
+
             printf("\nSymbol Table analysis completed successfully.\n");
+
+            semantic_errors = analyze_semantics(
+                ast_root,
+                &symbol_table
+            );
+
         } else {
+
             printf("\nSymbol Table analysis completed with errors.\n");
             printf("Symbol errors: %d\n", symbol_error_count);
+
+            printf("\nSemantic analysis skipped because symbol errors exist.\n");
         }
 
         ast_free(ast_root);
         free_symbol_table(&symbol_table);
 
-        return symbol_error_count == 0 ? 0 : 1;
+        return (
+            symbol_error_count == 0 &&
+            semantic_errors == 0
+        ) ? 0 : 1;
     }
 
     printf("Syntax analysis completed with errors.\n");

@@ -94,7 +94,7 @@ typedef union YYSTYPE
 {
 
 /* Line 1685 of yacc.c  */
-#line 25 "compiler\\src\\parser\\parser.y"
+#line 39 "compiler\\src\\parser\\parser.y"
 
     char *text;
     ASTNode *node;
