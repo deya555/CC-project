@@ -288,9 +288,9 @@ expression:
     | CHAR_LITERAL
       { $$ = ast_create(AST_CHAR, $1); }
     | TRUE
-      { $$ = ast_create(AST_IDENTIFIER, "true"); }
-    | FALSE
-      { $$ = ast_create(AST_IDENTIFIER, "false"); }
+  { $$ = ast_create(AST_BOOLEAN, "true"); }
+| FALSE
+  { $$ = ast_create(AST_BOOLEAN, "false"); }
     | IDENTIFIER_TOKEN
       { $$ = ast_create(AST_IDENTIFIER, $1); }
     | LPAREN expression RPAREN

@@ -1,4 +1,3 @@
-
 #ifndef C_AST_H
 #define C_AST_H
 
@@ -20,6 +19,7 @@ typedef enum {
     AST_FLOAT,
     AST_STRING,
     AST_CHAR,
+    AST_BOOLEAN,
     AST_EXPRESSION_STATEMENT
 } ASTNodeType;
 

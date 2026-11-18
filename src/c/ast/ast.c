@@ -1,11 +1,9 @@
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "ast.h"
 
-/* Create a copy of a string */
 static char *copy_string(const char *text)
 {
     if (text == NULL)
@@ -19,7 +17,6 @@ static char *copy_string(const char *text)
     return copy;
 }
 
-/* Create a new AST node */
 ASTNode *ast_create(ASTNodeType type, const char *value)
 {
     ASTNode *node = malloc(sizeof(ASTNode));
@@ -38,7 +35,6 @@ ASTNode *ast_create(ASTNodeType type, const char *value)
     return node;
 }
 
-/* Add a child to a parent node */
 void ast_add_child(ASTNode *parent, ASTNode *child)
 {
     if (parent == NULL || child == NULL)
@@ -53,14 +49,11 @@ void ast_add_child(ASTNode *parent, ASTNode *child)
     ASTNode *current = parent->child;
 
     while (current->next != NULL)
-    {
         current = current->next;
-    }
 
     current->next = child;
 }
 
-/* Get readable node names */
 static const char *ast_node_name(ASTNodeType type)
 {
     switch (type)
@@ -82,13 +75,13 @@ static const char *ast_node_name(ASTNodeType type)
         case AST_FLOAT: return "FLOAT";
         case AST_STRING: return "STRING";
         case AST_CHAR: return "CHAR";
+        case AST_BOOLEAN: return "BOOLEAN";
         case AST_EXPRESSION_STATEMENT:
             return "EXPRESSION_STATEMENT";
         default: return "UNKNOWN";
     }
 }
 
-/* Recursively print the AST */
 static void print_tree(ASTNode *node, int depth)
 {
     if (node == NULL)
@@ -113,7 +106,6 @@ void ast_print(ASTNode *root)
     print_tree(root, 0);
 }
 
-/* Free AST memory */
 void ast_free(ASTNode *root)
 {
     if (root == NULL)

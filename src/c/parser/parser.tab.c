@@ -2020,14 +2020,14 @@ yyreduce:
 
 /* Line 1464 of yacc.c  */
 #line 291 "src/c/parser/parser.y"
-    { (yyval.node) = ast_create(AST_IDENTIFIER, "true"); ;}
+    { (yyval.node) = ast_create(AST_BOOLEAN, "true"); ;}
     break;
 
   case 51:
 
 /* Line 1464 of yacc.c  */
 #line 293 "src/c/parser/parser.y"
-    { (yyval.node) = ast_create(AST_IDENTIFIER, "false"); ;}
+    { (yyval.node) = ast_create(AST_BOOLEAN, "false"); ;}
     break;
 
   case 52:
