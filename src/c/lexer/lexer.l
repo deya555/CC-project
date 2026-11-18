@@ -1,4 +1,3 @@
-
 %{
 #include <stdio.h>
 #include <stdlib.h>
@@ -6,6 +5,20 @@
 #include "../parser/parser.h"
 
 int line_number = 1;
+
+static char *copy_lexeme(const char *text)
+{
+    char *copy = malloc(strlen(text) + 1);
+
+    if (copy == NULL)
+    {
+        fprintf(stderr, "Lexer memory allocation failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    strcpy(copy, text);
+    return copy;
+}
 %}
 
 %option noyywrap
@@ -48,10 +61,20 @@ WHITESPACE  [ \t\r]+
 "true"          { return TRUE; }
 "false"         { return FALSE; }
 
-{FLOAT}         { return FLOAT_LITERAL; }
-{INTEGER}       { return INTEGER_LITERAL; }
+{FLOAT} {
+    yylval.text = copy_lexeme(yytext);
+    return FLOAT_LITERAL;
+}
 
-{IDENTIFIER}    { return IDENTIFIER_TOKEN; }
+{INTEGER} {
+    yylval.text = copy_lexeme(yytext);
+    return INTEGER_LITERAL;
+}
+
+{IDENTIFIER} {
+    yylval.text = copy_lexeme(yytext);
+    return IDENTIFIER_TOKEN;
+}
 
 "=="            { return EQUAL; }
 "!="            { return NOT_EQUAL; }
@@ -85,8 +108,15 @@ WHITESPACE  [ \t\r]+
 "["             { return LBRACKET; }
 "]"             { return RBRACKET; }
 
-\"([^\\\"\n]|\\.)*\" { return STRING_LITERAL; }
-\'([^\\\'\n]|\\.)*\' { return CHAR_LITERAL; }
+\"([^\\\"\n]|\\.)*\" {
+    yylval.text = copy_lexeme(yytext);
+    return STRING_LITERAL;
+}
+
+\'([^\\\'\n]|\\.)*\' {
+    yylval.text = copy_lexeme(yytext);
+    return CHAR_LITERAL;
+}
 
 "//".*          { /* Ignore single-line comments */ }
 
