@@ -1,3 +1,4 @@
+
 const express = require("express");
 const cors = require("cors");
 const { executeCode } = require("./services/executionService");
@@ -6,7 +7,10 @@ const app = express();
 const PORT = 5000;
 
 app.use(cors({
-  origin: "http://localhost:5173"
+  origin: [
+    "http://localhost:5173",
+    "http://localhost:5174"
+  ]
 }));
 
 app.use(express.json({ limit: "100kb" }));
@@ -31,7 +35,6 @@ app.post("/api/execute", async (req, res) => {
       });
     }
 
-    // Call the execution service
     const result = await executeCode(language, code, input);
 
     return res.json({

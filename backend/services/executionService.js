@@ -1,3 +1,4 @@
+
 const { spawn } = require("child_process");
 const fs = require("fs/promises");
 const os = require("os");
@@ -9,6 +10,7 @@ const MAX_CODE_SIZE = 50 * 1024;
 const MAX_INPUT_SIZE = 10 * 1024;
 const MAX_OUTPUT_SIZE = 64 * 1024;
 
+// Runs a command safely without using a shell.
 function runCommand(command, args, options = {}) {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
@@ -73,6 +75,61 @@ function runCommand(command, args, options = {}) {
   });
 }
 
+// Runs our custom C compiler pipeline.
+async function analyzeC(code) {
+  const projectRoot = path.resolve(__dirname, "../..");
+  const parserExecutable = path.join(projectRoot, "c_parser.exe");
+
+  try {
+    await fs.access(parserExecutable);
+  } catch {
+    throw new Error(
+      "C compiler executable not found. Please build c_parser.exe first."
+    );
+  }
+
+  // The C parser reads source code from standard input.
+  const result = await runCommand(
+    parserExecutable,
+    [],
+    {
+      cwd: projectRoot,
+      input: code,
+    }
+  );
+
+  const output = [result.stdout, result.stderr]
+    .filter(Boolean)
+    .join("\n");
+
+  const syntaxFailed =
+    output.includes("Syntax Analysis Failed!") ||
+    output.includes("Syntax Error:");
+
+  const semanticFailed =
+    output.includes("Semantic Error:") ||
+    output.includes("Type Error:");
+
+  return {
+    success:
+      result.exitCode === 0 &&
+      !syntaxFailed &&
+      !semanticFailed,
+
+    output: output || "C compiler finished without output.",
+
+    exitCode: result.exitCode,
+
+    stage: syntaxFailed
+      ? "compile"
+      : semanticFailed
+        ? "semantic"
+        : "analysis",
+
+    analysisReady: true,
+  };
+}
+
 async function executeCode(language, code, input = "") {
   if (typeof code !== "string" || !code.trim()) {
     throw new Error("Please enter some source code.");
@@ -94,7 +151,16 @@ async function executeCode(language, code, input = "") {
     throw new Error("Unsupported language.");
   }
 
-  const workDir = path.join(os.tmpdir(), `multicompiler-${randomUUID()}`);
+  // C uses our custom compiler pipeline.
+  if (language === "c") {
+    return await analyzeC(code);
+  }
+
+  // C++ and Java retain their existing execution behavior.
+  const workDir = path.join(
+    os.tmpdir(),
+    `multicompiler-${randomUUID()}`
+  );
 
   await fs.mkdir(workDir, { recursive: false });
 
@@ -102,26 +168,7 @@ async function executeCode(language, code, input = "") {
     let executable;
     let runArgs = [];
 
-    if (language === "c") {
-      const source = path.join(workDir, "main.c");
-      executable = path.join(workDir, "main.exe");
-
-      await fs.writeFile(source, code, "utf8");
-
-      const result = await runCommand(
-        "gcc",
-        [source, "-o", executable],
-        { cwd: workDir }
-      );
-
-      if (result.exitCode !== 0) {
-        return {
-          success: false,
-          output: result.stderr || "C compilation failed.",
-          stage: "compile",
-        };
-      }
-    } else if (language === "cpp") {
+    if (language === "cpp") {
       const source = path.join(workDir, "main.cpp");
       executable = path.join(workDir, "main.exe");
 
@@ -166,7 +213,10 @@ async function executeCode(language, code, input = "") {
     const result = await runCommand(
       executable,
       runArgs,
-      { cwd: workDir, input }
+      {
+        cwd: workDir,
+        input,
+      }
     );
 
     return {
@@ -178,7 +228,10 @@ async function executeCode(language, code, input = "") {
       stage: "run",
     };
   } finally {
-    await fs.rm(workDir, { recursive: true, force: true });
+    await fs.rm(workDir, {
+      recursive: true,
+      force: true,
+    });
   }
 }
 
