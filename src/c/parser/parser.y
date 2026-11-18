@@ -20,7 +20,7 @@ ASTNode *ast_root = NULL;
     struct ASTNode *node;
 }
 
-%token INT FLOAT_TYPE DOUBLE CHAR VOID
+%token INT BOOL FLOAT_TYPE DOUBLE CHAR VOID
 %token SHORT LONG SIGNED UNSIGNED
 
 %token IF ELSE WHILE FOR DO
@@ -149,6 +149,7 @@ declarator:
 
 type_specifier:
       INT       { $$ = ast_create(AST_TYPE, "int"); }
+    | BOOL      { $$ = ast_create(AST_TYPE, "bool"); }
     | FLOAT_TYPE { $$ = ast_create(AST_TYPE, "float"); }
     | DOUBLE    { $$ = ast_create(AST_TYPE, "double"); }
     | CHAR      { $$ = ast_create(AST_TYPE, "char"); }

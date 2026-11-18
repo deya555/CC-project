@@ -43,14 +43,6 @@ static void emit(const char *instruction)
     instruction_count++;
 }
 
-/* Check whether a node contains a number */
-static int is_number_node(ASTNode *node)
-{
-    return node != NULL &&
-           (node->type == AST_INTEGER ||
-            node->type == AST_FLOAT);
-}
-
 /* Constant arithmetic operations */
 static int fold_binary_operation(
     const char *op,
@@ -168,6 +160,7 @@ static char *generate_expression(ASTNode *node)
     double constant_value;
     int is_integer;
 
+    /* Constant folding */
     if (evaluate_constant(node, &constant_value, &is_integer))
     {
         if (is_integer)
@@ -184,6 +177,7 @@ static char *generate_expression(ASTNode *node)
         return result_buffer;
     }
 
+    /* Identifiers and literal values */
     if (node->type == AST_IDENTIFIER ||
         node->type == AST_INTEGER ||
         node->type == AST_FLOAT ||
@@ -193,6 +187,7 @@ static char *generate_expression(ASTNode *node)
         return node->value;
     }
 
+    /* Binary expressions */
     if (node->type == AST_BINARY_EXPR)
     {
         ASTNode *left = node->child;
@@ -218,6 +213,36 @@ static char *generate_expression(ASTNode *node)
         snprintf(instruction, sizeof(instruction),
                  "%s = %s %s %s",
                  temp, left_copy, node->value, right_copy);
+
+        emit(instruction);
+
+        snprintf(result_buffer, sizeof(result_buffer),
+                 "%s", temp);
+
+        return result_buffer;
+    }
+
+    /* Unary expressions: !, - and other unary operators */
+    if (node->type == AST_UNARY_EXPR)
+    {
+        ASTNode *operand = node->child;
+
+        if (operand == NULL)
+            return "";
+
+        char operand_copy[100];
+
+        snprintf(operand_copy, sizeof(operand_copy), "%s",
+                 generate_expression(operand));
+
+        char temp[20];
+        snprintf(temp, sizeof(temp), "%s", new_temp());
+
+        char instruction[MAX_TAC_LENGTH];
+
+        snprintf(instruction, sizeof(instruction),
+                 "%s = %s%s",
+                 temp, node->value, operand_copy);
 
         emit(instruction);
 

@@ -34,6 +34,7 @@ WHITESPACE  [ \t\r]+
 %%
 
 "int"           { return INT; }
+"bool"          { return BOOL; }
 "float"         { return FLOAT_TYPE; }
 "double"        { return DOUBLE; }
 "char"          { return CHAR; }
