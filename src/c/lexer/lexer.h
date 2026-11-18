@@ -1,0 +1,74 @@
+
+#ifndef C_LEXER_H
+#define C_LEXER_H
+
+typedef enum {
+    INT = 256,
+    FLOAT_TYPE,
+    DOUBLE,
+    CHAR,
+    VOID,
+    SHORT,
+    LONG,
+    SIGNED,
+    UNSIGNED,
+
+    IF,
+    ELSE,
+    WHILE,
+    FOR,
+    DO,
+    SWITCH,
+    CASE,
+    DEFAULT,
+    BREAK,
+    CONTINUE,
+    RETURN,
+
+    PRINTF,
+    SCANF,
+
+    TRUE,
+    FALSE,
+
+    INTEGER_LITERAL,
+    FLOAT_LITERAL,
+    STRING_LITERAL,
+    CHAR_LITERAL,
+    IDENTIFIER_TOKEN,
+
+    EQUAL,
+    NOT_EQUAL,
+    LESS_EQUAL,
+    GREATER_EQUAL,
+    LOGICAL_AND,
+    LOGICAL_OR,
+    INCREMENT,
+    DECREMENT,
+    PLUS_ASSIGN,
+    MINUS_ASSIGN,
+    MULTIPLY_ASSIGN,
+    DIVIDE_ASSIGN,
+
+    PLUS,
+    MINUS,
+    MULTIPLY,
+    DIVIDE,
+    MODULO,
+    ASSIGN,
+    LESS,
+    GREATER,
+    LOGICAL_NOT,
+
+    SEMICOLON,
+    COMMA,
+    LPAREN,
+    RPAREN,
+    LBRACE,
+    RBRACE,
+    LBRACKET,
+    RBRACKET
+
+} TokenType;
+
+#endif
