@@ -84,9 +84,7 @@ static void analyze_declaration(ASTNode *node, SymbolTable *table)
             int initialized = initializer != NULL;
 
             if (initialized)
-            {
                 analyze_node(initializer, table);
-            }
 
             if (!symbol_table_add(
                     table,
@@ -94,8 +92,7 @@ static void analyze_declaration(ASTNode *node, SymbolTable *table)
                     type_node->value,
                     initialized))
             {
-                printf("Semantic Error: Invalid declaration of '%s'.\n",
-                       variable->value);
+                /* symbol_table_add already reports redeclaration errors */
             }
             else if (initialized)
             {
@@ -169,6 +166,7 @@ static void analyze_node(ASTNode *node, SymbolTable *table)
             {
                 printf("Semantic Error: Undeclared variable '%s'.\n",
                        left->value);
+
                 analyze_node(right, table);
                 return;
             }
@@ -192,11 +190,19 @@ static void analyze_node(ASTNode *node, SymbolTable *table)
 
         case AST_IDENTIFIER:
         {
-            if (symbol_table_lookup(table, node->value) == NULL)
+            Symbol *symbol = symbol_table_lookup(table, node->value);
+
+            if (symbol == NULL)
             {
                 printf("Semantic Error: Undeclared variable '%s'.\n",
                        node->value);
             }
+            else if (!symbol->is_initialized)
+            {
+                printf("Semantic Error: Variable '%s' used before initialization.\n",
+                       node->value);
+            }
+
             return;
         }
 
