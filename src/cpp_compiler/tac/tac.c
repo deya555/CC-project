@@ -1,9 +1,49 @@
-
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
 
 #include "tac.h"
+
+/* ---------- Loop label stack (Step 1) ---------- */
+#define CPP_TAC_MAX_LOOP_DEPTH 100
+
+static char loop_break_labels[CPP_TAC_MAX_LOOP_DEPTH][CPP_TAC_MAX_LENGTH];
+static char loop_continue_labels[CPP_TAC_MAX_LOOP_DEPTH][CPP_TAC_MAX_LENGTH];
+
+static int loop_depth = 0;
+
+static int push_loop(
+    CPPTAC *tac,
+    const char *break_label,
+    const char *continue_label
+) {
+    if (loop_depth >= CPP_TAC_MAX_LOOP_DEPTH) {
+        tac->had_error = 1;
+        return 0;
+    }
+
+    snprintf(
+        loop_break_labels[loop_depth],
+        CPP_TAC_MAX_LENGTH,
+        "%s",
+        break_label
+    );
+
+    snprintf(
+        loop_continue_labels[loop_depth],
+        CPP_TAC_MAX_LENGTH,
+        "%s",
+        continue_label
+    );
+
+    loop_depth++;
+    return 1;
+}
+
+static void pop_loop(void) {
+    if (loop_depth > 0)
+        loop_depth--;
+}
 
 /* Generate temporary variable names */
 static void new_temp(CPPTAC *tac, char *buffer, size_t size) {
@@ -269,6 +309,7 @@ static void generate_statement(CPPTAC *tac, CPPASTNode *node) {
             break;
         }
 
+        /* ---------- Step 2: patched AST_WHILE ---------- */
         case AST_WHILE: {
             char start_label[CPP_TAC_MAX_LENGTH];
             char end_label[CPP_TAC_MAX_LENGTH];
@@ -292,7 +333,12 @@ static void generate_statement(CPPTAC *tac, CPPASTNode *node) {
                 end_label
             );
 
+            if (!push_loop(tac, end_label, start_label))
+                break;
+
             generate_statement(tac, node->right);
+
+            pop_loop();
 
             emit(tac, "goto %s", start_label);
             emit(tac, "%s:", end_label);
@@ -315,12 +361,29 @@ static void generate_statement(CPPTAC *tac, CPPASTNode *node) {
             }
             break;
 
+        /* ---------- Step 3: patched break / continue ---------- */
         case AST_BREAK:
-            emit(tac, "break");
+            if (loop_depth > 0) {
+                emit(
+                    tac,
+                    "goto %s",
+                    loop_break_labels[loop_depth - 1]
+                );
+            } else {
+                tac->had_error = 1;
+            }
             break;
 
         case AST_CONTINUE:
-            emit(tac, "continue");
+            if (loop_depth > 0) {
+                emit(
+                    tac,
+                    "goto %s",
+                    loop_continue_labels[loop_depth - 1]
+                );
+            } else {
+                tac->had_error = 1;
+            }
             break;
 
         case AST_EMPTY:
@@ -339,6 +402,8 @@ void cpp_tac_init(CPPTAC *tac) {
         return;
 
     memset(tac, 0, sizeof(*tac));
+
+    loop_depth = 0;   /* ---------- Step 4 ---------- */
 }
 
 int cpp_tac_generate(CPPTAC *tac, CPPASTNode *root) {
