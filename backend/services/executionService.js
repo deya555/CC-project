@@ -144,6 +144,7 @@ async function executeCode(language, code, input = "") {
   try {
     let executable;
     let runArgs = [];
+    let compilerOutput = "";
 
     if (language === "c") {
       const source = path.join(workDir, "main.c");
@@ -184,10 +185,42 @@ async function executeCode(language, code, input = "") {
         };
       }
     } else {
+      const projectRoot = path.resolve(__dirname, "../..");
+
+      const javaCompiler = path.join(
+        projectRoot,
+        "src",
+        "java_compiler",
+        "java_compiler_cli.exe"
+      );
+
       const source = path.join(workDir, "Main.java");
 
       await fs.writeFile(source, code, "utf8");
 
+      // STEP 1: Run our custom C-based Java compiler.
+      await fs.access(javaCompiler);
+
+      const analysis = await runCommand(
+        javaCompiler,
+        [source],
+        { cwd: projectRoot }
+      );
+
+      compilerOutput = [analysis.stdout, analysis.stderr]
+        .filter(Boolean)
+        .join("\n");
+
+      if (analysis.exitCode !== 0) {
+        return {
+          success: false,
+          output: compilerOutput || "Custom Java compiler analysis failed.",
+          stage: "analysis",
+          analysisReady: true,
+        };
+      }
+
+      // STEP 2: Compile Java source using javac.
       const result = await runCommand(
         "javac",
         [source],
@@ -197,11 +230,16 @@ async function executeCode(language, code, input = "") {
       if (result.exitCode !== 0) {
         return {
           success: false,
-          output: result.stderr || "Java compilation failed.",
+          output: [
+            compilerOutput,
+            result.stderr || "Java compilation failed.",
+          ].filter(Boolean).join("\n\n"),
           stage: "compile",
+          analysisReady: true,
         };
       }
 
+      // STEP 3: Execute Java program.
       executable = "java";
       runArgs = ["-cp", workDir, "Main"];
     }
@@ -217,12 +255,15 @@ async function executeCode(language, code, input = "") {
 
     return {
       success: result.exitCode === 0,
-      output: [result.stdout, result.stderr]
-        .filter(Boolean)
-        .join("\n") || "Program finished without output.",
+      output: [
+        compilerOutput,
+        result.stdout,
+        result.stderr,
+      ].filter(Boolean).join("\n\n") || "Program finished without output.",
       exitCode: result.exitCode,
       stage: "run",
       executionReady: true,
+      ...(language === "java" ? { analysisReady: true } : {}),
     };
   } finally {
     await fs.rm(workDir, {

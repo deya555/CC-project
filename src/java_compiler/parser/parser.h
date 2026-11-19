@@ -3,14 +3,7 @@
 #define JAVA_PARSER_H
 
 #include "../lexer/lexer.h"
-
-typedef struct ASTNode {
-    char type[50];
-    char value[MAX_LEXEME];
-    char dataType[MAX_LEXEME];
-    struct ASTNode *children[20];
-    int childCount;
-} ASTNode;
+#include "../ast/ast.h"
 
 typedef struct {
     Token tokens[MAX_TOKENS];
@@ -19,12 +12,7 @@ typedef struct {
     int hasError;
 } Parser;
 
-void initParser(Parser *parser, Token *tokens, int count);
-
+void initParser(Parser *parser, const Token *tokens, int count);
 ASTNode *parseProgram(Parser *parser);
-
-void printAST(ASTNode *node, int level);
-
-void freeAST(ASTNode *node);
 
 #endif

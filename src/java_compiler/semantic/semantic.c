@@ -3,784 +3,513 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <stdlib.h>
 #include <ctype.h>
 
-/* =========================================
-   BASIC HELPERS
-   ========================================= */
+static int semanticErrors = 0;
 
-static void copyText(char *destination, const char *source) {
-    snprintf(destination, MAX_LEXEME, "%s", source);
-}
+/* ================= ERROR REPORTING ================= */
 
-static int isNumericType(const char *type) {
-    return strcmp(type, "int") == 0 ||
-           strcmp(type, "float") == 0 ||
-           strcmp(type, "double") == 0 ||
-           strcmp(type, "long") == 0 ||
-           strcmp(type, "short") == 0 ||
-           strcmp(type, "byte") == 0 ||
-           strcmp(type, "char") == 0;
-}
+static void reportError(const char *message, const char *name)
+{
+    semanticErrors++;
 
-static int isIntegerType(const char *type) {
-    return strcmp(type, "int") == 0 ||
-           strcmp(type, "long") == 0 ||
-           strcmp(type, "short") == 0 ||
-           strcmp(type, "byte") == 0;
-}
-
-static int isBooleanType(const char *type) {
-    return strcmp(type, "boolean") == 0;
-}
-
-/* =========================================
-   SCOPE MANAGEMENT
-   ========================================= */
-
-static int enterScope(SemanticAnalyzer *analyzer) {
-    if (analyzer->scopeCount >= MAX_SCOPES) {
-        printf("Semantic Error: Maximum scope limit reached.\n");
-        analyzer->errorCount++;
-        return analyzer->currentScope;
-    }
-
-    int newId = analyzer->scopeCount;
-
-    analyzer->scopes[newId].id = newId;
-    analyzer->scopes[newId].parentId = analyzer->currentScope;
-
-    analyzer->scopeCount++;
-    analyzer->currentScope = newId;
-
-    return newId;
-}
-
-static void exitScope(SemanticAnalyzer *analyzer) {
-    if (analyzer->currentScope >= 0) {
-        analyzer->currentScope =
-            analyzer->scopes[analyzer->currentScope].parentId;
+    if (name != NULL) {
+        fprintf(stderr, "Semantic Error: %s '%s'.\n", message, name);
+    } else {
+        fprintf(stderr, "Semantic Error: %s\n", message);
     }
 }
 
-/* =========================================
-   SYMBOL TABLE
-   ========================================= */
+/* ================= TYPE HELPERS ================= */
 
-static int findSymbolInScope(
-    SemanticAnalyzer *analyzer,
-    const char *name,
-    int scopeId
-) {
-    for (int i = analyzer->count - 1; i >= 0; i--) {
-        if (analyzer->symbols[i].scopeId == scopeId &&
-            strcmp(analyzer->symbols[i].name, name) == 0) {
-            return i;
-        }
-    }
+static int sameType(const char *a, const char *b)
+{
+    if (a == NULL || b == NULL)
+        return 0;
 
-    return -1;
+    return strcmp(a, b) == 0 ||
+           (strcmp(a, "String") == 0 && strcmp(b, "string") == 0) ||
+           (strcmp(a, "string") == 0 && strcmp(b, "String") == 0);
 }
 
-/* Search current scope, then its parent scopes */
-
-static int findSymbol(
-    SemanticAnalyzer *analyzer,
-    const char *name
-) {
-    int scopeId = analyzer->currentScope;
-
-    while (scopeId >= 0) {
-        int index = findSymbolInScope(
-            analyzer,
-            name,
-            scopeId
-        );
-
-        if (index != -1) {
-            return index;
-        }
-
-        scopeId = analyzer->scopes[scopeId].parentId;
-    }
-
-    return -1;
+static int isNumeric(const char *type)
+{
+    return type != NULL &&
+           (strcmp(type, "int") == 0 ||
+            strcmp(type, "float") == 0 ||
+            strcmp(type, "double") == 0);
 }
 
-static int addSymbol(
-    SemanticAnalyzer *analyzer,
-    const char *name,
-    const char *type,
-    int initialized
-) {
-    if (findSymbolInScope(
-            analyzer,
-            name,
-            analyzer->currentScope
-        ) != -1) {
+static int canAssign(const char *target, const char *source)
+{
+    if (target == NULL || source == NULL)
+        return 0;
 
-        printf(
-            "Semantic Error: Variable '%s' already declared in this scope.\n",
-            name
-        );
-
-        analyzer->errorCount++;
-        return -1;
-    }
-
-    if (analyzer->count >= MAX_SYMBOLS) {
-        printf("Semantic Error: Symbol table is full.\n");
-        analyzer->errorCount++;
-        return -1;
-    }
-
-    Symbol *symbol = &analyzer->symbols[analyzer->count];
-
-    copyText(symbol->name, name);
-    copyText(symbol->type, type);
-
-    symbol->initialized = initialized;
-    symbol->line = 0;
-    symbol->scopeId = analyzer->currentScope;
-
-    analyzer->count++;
-
-    return analyzer->count - 1;
-}
-
-/* =========================================
-   TYPE COMPATIBILITY
-   ========================================= */
-
-static int canAssign(
-    const char *target,
-    const char *source
-) {
-    if (strcmp(target, source) == 0) {
+    if (sameType(target, source))
         return 1;
-    }
 
-    /* Java-style numeric widening */
-
-    if (strcmp(target, "double") == 0 &&
-        (strcmp(source, "float") == 0 ||
-         strcmp(source, "long") == 0 ||
-         strcmp(source, "int") == 0 ||
-         strcmp(source, "short") == 0 ||
-         strcmp(source, "byte") == 0 ||
-         strcmp(source, "char") == 0)) {
+    /* Allow safe numeric widening. */
+    if (strcmp(target, "double") == 0 && isNumeric(source))
         return 1;
-    }
 
     if (strcmp(target, "float") == 0 &&
-        (strcmp(source, "long") == 0 ||
-         strcmp(source, "int") == 0 ||
-         strcmp(source, "short") == 0 ||
-         strcmp(source, "byte") == 0 ||
-         strcmp(source, "char") == 0)) {
+        strcmp(source, "int") == 0)
         return 1;
-    }
-
-    if (strcmp(target, "long") == 0 &&
-        (strcmp(source, "int") == 0 ||
-         strcmp(source, "short") == 0 ||
-         strcmp(source, "byte") == 0 ||
-         strcmp(source, "char") == 0)) {
-        return 1;
-    }
-
-    if (strcmp(target, "int") == 0 &&
-        (strcmp(source, "short") == 0 ||
-         strcmp(source, "byte") == 0 ||
-         strcmp(source, "char") == 0)) {
-        return 1;
-    }
 
     return 0;
 }
 
-static void promoteNumericType(
-    const char *left,
-    const char *right,
-    char *result
-) {
-    if (strcmp(left, "double") == 0 ||
-        strcmp(right, "double") == 0) {
-        copyText(result, "double");
-    }
-    else if (strcmp(left, "float") == 0 ||
-             strcmp(right, "float") == 0) {
-        copyText(result, "float");
-    }
-    else if (strcmp(left, "long") == 0 ||
-             strcmp(right, "long") == 0) {
-        copyText(result, "long");
-    }
-    else {
-        copyText(result, "int");
-    }
-}
+/* ================= EXPRESSION ANALYSIS ================= */
 
-/* =========================================
-   LITERAL TYPE DETECTION
-   ========================================= */
+static const char *analyzeExpression(
+    const ASTNode *node,
+    SymbolTable *table
+);
 
+static const char *analyzeLiteral(const char *value)
+{
+    if (value == NULL)
+        return NULL;
 
-static void getLiteralType(
-    const char *value,
-    char *result
-) {
-    /* Boolean literals */
     if (strcmp(value, "true") == 0 ||
-        strcmp(value, "false") == 0) {
-        copyText(result, "boolean");
-        return;
-    }
+        strcmp(value, "false") == 0)
+        return "boolean";
 
-    /* Null literal */
-    if (strcmp(value, "null") == 0) {
-        copyText(result, "null");
-        return;
-    }
+    if (value[0] == '"')
+        return "String";
 
-    size_t length = strlen(value);
+    if (value[0] == '\'')
+        return "char";
 
-    /* String literals with quotation marks */
-    if (length >= 2 &&
-        value[0] == '"' &&
-        value[length - 1] == '"') {
-        copyText(result, "String");
-        return;
-    }
+    if (strchr(value, '.') != NULL)
+        return "double";
 
-    /* Character literals with quotation marks */
-    if (length >= 3 &&
-        value[0] == '\'' &&
-        value[length - 1] == '\'') {
-        copyText(result, "char");
-        return;
-    }
+    if (isdigit((unsigned char)value[0]))
+        return "int";
 
-    /* Numeric literals */
-    char *end = NULL;
-    strtod(value, &end);
-
-    if (end != value && *end == '\0') {
-
-        if (strchr(value, '.') != NULL ||
-            strchr(value, 'e') != NULL ||
-            strchr(value, 'E') != NULL) {
-            copyText(result, "double");
-        }
-        else {
-            copyText(result, "int");
-        }
-
-        return;
-    }
-
-    /*
-       Our parser currently removes quotation marks
-       from string literals.
-
-       Since this function receives an AST LITERAL,
-       an otherwise unrecognized literal is treated
-       as a String.
-    */
-    copyText(result, "String");
+    return NULL;
 }
 
+static const char *analyzeIdentifier(
+    const ASTNode *node,
+    SymbolTable *table
+)
+{
+    Symbol *symbol = lookupSymbol(table, node->value);
 
-/* =========================================
-   EXPRESSION TYPE CHECKING
-   ========================================= */
-
-static void inferExpressionType(
-    SemanticAnalyzer *analyzer,
-    ASTNode *node,
-    char *result
-) {
-    if (node == NULL) {
-        copyText(result, "unknown");
-        return;
+    if (symbol == NULL) {
+        reportError("Undeclared variable", node->value);
+        return NULL;
     }
 
-    if (strcmp(node->type, "LITERAL") == 0) {
-        getLiteralType(node->value, result);
-        return;
+    if (!symbol->isInitialized) {
+        reportError("Variable used before initialization",
+                    node->value);
+        return NULL;
     }
 
-    if (strcmp(node->type, "IDENTIFIER") == 0) {
-        int index = findSymbol(analyzer, node->value);
-
-        if (index == -1) {
-            printf(
-                "Semantic Error: Undeclared variable '%s'.\n",
-                node->value
-            );
-
-            analyzer->errorCount++;
-            copyText(result, "unknown");
-            return;
-        }
-
-        if (!analyzer->symbols[index].initialized) {
-            printf(
-                "Semantic Error: Variable '%s' may be uninitialized.\n",
-                node->value
-            );
-
-            analyzer->errorCount++;
-        }
-
-        copyText(result, analyzer->symbols[index].type);
-        return;
-    }
-
-    if (strcmp(node->type, "UNARY_EXPRESSION") == 0) {
-        if (node->childCount < 1) {
-            copyText(result, "unknown");
-            return;
-        }
-
-        char operandType[MAX_LEXEME];
-
-        inferExpressionType(
-            analyzer,
-            node->children[0],
-            operandType
-        );
-
-        if (strcmp(node->value, "!") == 0) {
-            if (!isBooleanType(operandType)) {
-                printf(
-                    "Semantic Error: Logical NOT requires a boolean operand.\n"
-                );
-
-                analyzer->errorCount++;
-            }
-
-            copyText(result, "boolean");
-        }
-        else {
-            if (!isNumericType(operandType)) {
-                printf(
-                    "Semantic Error: Unary arithmetic operator requires a numeric operand.\n"
-                );
-
-                analyzer->errorCount++;
-                copyText(result, "unknown");
-            }
-            else {
-                copyText(result, operandType);
-            }
-        }
-
-        return;
-    }
-
-    if (strcmp(node->type, "BINARY_EXPRESSION") == 0) {
-        if (node->childCount < 2) {
-            copyText(result, "unknown");
-            return;
-        }
-
-        char leftType[MAX_LEXEME];
-        char rightType[MAX_LEXEME];
-
-        inferExpressionType(
-            analyzer,
-            node->children[0],
-            leftType
-        );
-
-        inferExpressionType(
-            analyzer,
-            node->children[1],
-            rightType
-        );
-
-        const char *op = node->value;
-
-        if (strcmp(op, "&&") == 0 ||
-            strcmp(op, "||") == 0) {
-
-            if (!isBooleanType(leftType) ||
-                !isBooleanType(rightType)) {
-                printf(
-                    "Semantic Error: Logical operator '%s' requires boolean operands.\n",
-                    op
-                );
-
-                analyzer->errorCount++;
-            }
-
-            copyText(result, "boolean");
-            return;
-        }
-
-        if (strcmp(op, "==") == 0 ||
-            strcmp(op, "!=") == 0) {
-
-            if (!(canAssign(leftType, rightType) ||
-                  canAssign(rightType, leftType))) {
-                printf(
-                    "Semantic Error: Incompatible types in comparison '%s'.\n",
-                    op
-                );
-
-                analyzer->errorCount++;
-            }
-
-            copyText(result, "boolean");
-            return;
-        }
-
-        if (strcmp(op, "<") == 0 ||
-            strcmp(op, ">") == 0 ||
-            strcmp(op, "<=") == 0 ||
-            strcmp(op, ">=") == 0) {
-
-            if (!isNumericType(leftType) ||
-                !isNumericType(rightType)) {
-                printf(
-                    "Semantic Error: Relational operator '%s' requires numeric operands.\n",
-                    op
-                );
-
-                analyzer->errorCount++;
-            }
-
-            copyText(result, "boolean");
-            return;
-        }
-
-        if (strcmp(op, "+") == 0 &&
-            (strcmp(leftType, "String") == 0 ||
-             strcmp(rightType, "String") == 0)) {
-
-            copyText(result, "String");
-            return;
-        }
-
-        if (strcmp(op, "+") == 0 ||
-            strcmp(op, "-") == 0 ||
-            strcmp(op, "*") == 0 ||
-            strcmp(op, "/") == 0 ||
-            strcmp(op, "%") == 0) {
-
-            if (!isNumericType(leftType) ||
-                !isNumericType(rightType)) {
-
-                printf(
-                    "Semantic Error: Arithmetic operator '%s' requires numeric operands.\n",
-                    op
-                );
-
-                analyzer->errorCount++;
-                copyText(result, "unknown");
-                return;
-            }
-
-            if (strcmp(op, "%") == 0 &&
-                (!isIntegerType(leftType) ||
-                 !isIntegerType(rightType))) {
-
-                printf(
-                    "Semantic Error: Modulo operator requires integer operands.\n"
-                );
-
-                analyzer->errorCount++;
-            }
-
-            promoteNumericType(leftType, rightType, result);
-            return;
-        }
-    }
-
-    copyText(result, "unknown");
+    return symbol->dataType;
 }
 
-/* =========================================
-   AST SEMANTIC ANALYSIS
-   ========================================= */
-
-static void analyzeNode(
-    SemanticAnalyzer *analyzer,
-    ASTNode *node
-) {
-    if (node == NULL) {
-        return;
+static const char *analyzeUnary(
+    const ASTNode *node,
+    SymbolTable *table
+)
+{
+    if (node->childCount != 1) {
+        reportError("Invalid unary expression", NULL);
+        return NULL;
     }
 
-    /* PROGRAM */
+    const char *operand =
+        analyzeExpression(node->children[0], table);
 
-    if (strcmp(node->type, "PROGRAM") == 0) {
-        for (int i = 0; i < node->childCount; i++) {
-            analyzeNode(analyzer, node->children[i]);
+    if (operand == NULL)
+        return NULL;
+
+    if (strcmp(node->value, "!") == 0) {
+        if (!sameType(operand, "boolean")) {
+            reportError("Logical NOT requires a boolean operand",
+                        NULL);
+            return NULL;
         }
 
-        return;
+        return "boolean";
     }
 
-    /* BLOCK creates a new scope */
+    if (strcmp(node->value, "-") == 0 ||
+        strcmp(node->value, "+") == 0) {
 
-    if (strcmp(node->type, "BLOCK") == 0) {
-        enterScope(analyzer);
-
-        for (int i = 0; i < node->childCount; i++) {
-            analyzeNode(analyzer, node->children[i]);
+        if (!isNumeric(operand)) {
+            reportError("Unary arithmetic requires a numeric operand",
+                        NULL);
+            return NULL;
         }
 
-        exitScope(analyzer);
-        return;
+        return operand;
     }
 
-    /* VARIABLE DECLARATION */
-
-if (strcmp(node->type, "VARIABLE_DECLARATION") == 0) {
-    int index = addSymbol(
-        analyzer,
-        node->value,
-        node->dataType,
-        0
-    );
-
-    if (node->childCount > 0) {
-        char expressionType[MAX_LEXEME];
-
-        inferExpressionType(
-            analyzer,
-            node->children[0],
-            expressionType
-        );
-
-        if (index != -1 &&
-            strcmp(expressionType, "unknown") != 0) {
-
-            if (!canAssign(
-                    analyzer->symbols[index].type,
-                    expressionType
-                )) {
-
-                printf(
-                    "Semantic Error: Cannot assign '%s' to variable '%s' of type '%s'.\n",
-                    expressionType,
-                    node->value,
-                    node->dataType
-                );
-
-                analyzer->errorCount++;
-            }
-            else {
-                analyzer->symbols[index].initialized = 1;
-            }
-        }
-    }
-
-    return;
+    reportError("Unknown unary operator", node->value);
+    return NULL;
 }
-    /* ASSIGNMENT */
 
-    if (strcmp(node->type, "ASSIGNMENT") == 0) {
-        int index = findSymbol(analyzer, node->value);
-
-        if (index == -1) {
-            printf(
-                "Semantic Error: Assignment to undeclared variable '%s'.\n",
-                node->value
-            );
-
-            analyzer->errorCount++;
-        }
-
-        if (node->childCount < 1) {
-            printf("Semantic Error: Assignment has no expression.\n");
-            analyzer->errorCount++;
-            return;
-        }
-
-        char expressionType[MAX_LEXEME];
-
-        inferExpressionType(
-            analyzer,
-            node->children[0],
-            expressionType
-        );
-
-        if (index != -1 &&
-            !canAssign(
-                analyzer->symbols[index].type,
-                expressionType
-            )) {
-
-            printf(
-                "Semantic Error: Cannot assign '%s' to variable '%s' of type '%s'.\n",
-                expressionType,
-                node->value,
-                analyzer->symbols[index].type
-            );
-
-            analyzer->errorCount++;
-        }
-        else if (index != -1) {
-            analyzer->symbols[index].initialized = 1;
-        }
-
-        return;
+static const char *analyzeBinary(
+    const ASTNode *node,
+    SymbolTable *table
+)
+{
+    if (node->childCount != 2) {
+        reportError("Invalid binary expression", NULL);
+        return NULL;
     }
 
-    /* IF STATEMENT */
+    const char *left =
+        analyzeExpression(node->children[0], table);
 
-    if (strcmp(node->type, "IF") == 0) {
-        if (node->childCount < 2) {
-            printf("Semantic Error: Invalid IF statement.\n");
-            analyzer->errorCount++;
-            return;
+    const char *right =
+        analyzeExpression(node->children[1], table);
+
+    if (left == NULL || right == NULL)
+        return NULL;
+
+    const char *op = node->value;
+
+    /* Arithmetic operators */
+    if (strcmp(op, "+") == 0 ||
+        strcmp(op, "-") == 0 ||
+        strcmp(op, "*") == 0 ||
+        strcmp(op, "/") == 0 ||
+        strcmp(op, "%") == 0) {
+
+        if (!isNumeric(left) || !isNumeric(right)) {
+            reportError("Arithmetic operator requires numeric operands",
+                        op);
+            return NULL;
         }
 
-        char conditionType[MAX_LEXEME];
+        if (strcmp(left, "double") == 0 ||
+            strcmp(right, "double") == 0)
+            return "double";
 
-        inferExpressionType(
-            analyzer,
-            node->children[0],
-            conditionType
-        );
+        if (strcmp(left, "float") == 0 ||
+            strcmp(right, "float") == 0)
+            return "float";
 
-        if (!isBooleanType(conditionType)) {
-            printf(
-                "Semantic Error: IF condition must be boolean.\n"
-            );
-
-            analyzer->errorCount++;
-        }
-
-        analyzeNode(analyzer, node->children[1]);
-
-        if (node->childCount >= 3) {
-            analyzeNode(analyzer, node->children[2]);
-        }
-
-        return;
+        return "int";
     }
 
-    /* WHILE STATEMENT */
+    /* Relational operators */
+    if (strcmp(op, "<") == 0 ||
+        strcmp(op, ">") == 0 ||
+        strcmp(op, "<=") == 0 ||
+        strcmp(op, ">=") == 0) {
 
-    if (strcmp(node->type, "WHILE") == 0) {
-        if (node->childCount < 2) {
-            printf("Semantic Error: Invalid WHILE statement.\n");
-            analyzer->errorCount++;
-            return;
+        if (!isNumeric(left) || !isNumeric(right)) {
+            reportError("Relational operator requires numeric operands",
+                        op);
+            return NULL;
         }
 
-        char conditionType[MAX_LEXEME];
-
-        inferExpressionType(
-            analyzer,
-            node->children[0],
-            conditionType
-        );
-
-        if (!isBooleanType(conditionType)) {
-            printf(
-                "Semantic Error: WHILE condition must be boolean.\n"
-            );
-
-            analyzer->errorCount++;
-        }
-
-        analyzeNode(analyzer, node->children[1]);
-        return;
+        return "boolean";
     }
 
-    /* OTHER STATEMENTS */
+    /* Equality operators */
+    if (strcmp(op, "==") == 0 ||
+        strcmp(op, "!=") == 0) {
 
-    if (strcmp(node->type, "PRINT") == 0 ||
-        strcmp(node->type, "RETURN") == 0) {
-
-        for (int i = 0; i < node->childCount; i++) {
-            char expressionType[MAX_LEXEME];
-
-            inferExpressionType(
-                analyzer,
-                node->children[i],
-                expressionType
-            );
+        if (!(sameType(left, right) ||
+              (isNumeric(left) && isNumeric(right)))) {
+            reportError("Incompatible types in equality expression",
+                        op);
+            return NULL;
         }
 
-        return;
+        return "boolean";
     }
 
-    /* Expressions and remaining nodes */
+    /* Logical operators */
+    if (strcmp(op, "&&") == 0 ||
+        strcmp(op, "||") == 0) {
 
-    for (int i = 0; i < node->childCount; i++) {
-        analyzeNode(analyzer, node->children[i]);
+        if (!sameType(left, "boolean") ||
+            !sameType(right, "boolean")) {
+            reportError("Logical operator requires boolean operands",
+                        op);
+            return NULL;
+        }
+
+        return "boolean";
+    }
+
+    reportError("Unknown binary operator", op);
+    return NULL;
+}
+
+static const char *analyzeExpression(
+    const ASTNode *node,
+    SymbolTable *table
+)
+{
+    if (node == NULL)
+        return NULL;
+
+    switch (node->type) {
+        case AST_LITERAL:
+            return analyzeLiteral(node->value);
+
+        case AST_IDENTIFIER:
+            return analyzeIdentifier(node, table);
+
+        case AST_BINARY_EXPRESSION:
+            return analyzeBinary(node, table);
+
+        case AST_UNARY_EXPRESSION:
+            return analyzeUnary(node, table);
+
+        default:
+            reportError("Invalid expression node", NULL);
+            return NULL;
     }
 }
 
-/* =========================================
-   INITIALIZATION
-   ========================================= */
+/* ================= STATEMENT ANALYSIS ================= */
 
-void initSemantic(SemanticAnalyzer *analyzer) {
-    analyzer->count = 0;
-    analyzer->errorCount = 0;
+static int analyzeNode(const ASTNode *node, SymbolTable *table);
 
-    analyzer->scopeCount = 0;
-    analyzer->currentScope = -1;
-}
+static int analyzeDeclaration(
+    const ASTNode *node,
+    SymbolTable *table
+)
+{
+    int initialized = node->childCount > 0;
 
-/* =========================================
-   START SEMANTIC ANALYSIS
-   ========================================= */
-
-int analyzeSemantics(
-    SemanticAnalyzer *analyzer,
-    ASTNode *root
-) {
-    if (analyzer == NULL || root == NULL) {
+    if (!insertSymbol(table,
+                      node->value,
+                      node->dataType,
+                      0)) {
+        reportError("Duplicate declaration or symbol table full",
+                    node->value);
         return 0;
     }
 
-    analyzer->errorCount = 0;
-    analyzer->count = 0;
-    analyzer->scopeCount = 0;
-    analyzer->currentScope = -1;
+    if (initialized) {
+        const char *actualType =
+            analyzeExpression(node->children[0], table);
 
-    analyzeNode(analyzer, root);
+        if (actualType == NULL)
+            return 0;
 
-    return analyzer->errorCount == 0;
-}
+        if (!canAssign(node->dataType, actualType)) {
+            reportError("Incompatible initializer type for variable",
+                        node->value);
+            return 0;
+        }
 
-/* =========================================
-   PRINT SYMBOL TABLE
-   ========================================= */
-
-void printSymbolTable(SemanticAnalyzer *analyzer) {
-    printf("\n========== JAVA SYMBOL TABLE ==========\n");
-
-    printf(
-        "%-15s %-12s %-15s %-10s\n",
-        "Name",
-        "Type",
-        "Initialized",
-        "Scope"
-    );
-
-    printf("------------------------------------------------------\n");
-
-    for (int i = 0; i < analyzer->count; i++) {
-        Symbol *symbol = &analyzer->symbols[i];
-
-        printf(
-            "%-15s %-12s %-15s %-10d\n",
-            symbol->name,
-            symbol->type,
-            symbol->initialized ? "Yes" : "No",
-            symbol->scopeId
-        );
+        updateSymbolInitialization(table, node->value);
     }
 
-    printf("======================================================\n");
+    return 1;
+}
+
+static int analyzeAssignment(
+    const ASTNode *node,
+    SymbolTable *table
+)
+{
+    Symbol *symbol = lookupSymbol(table, node->value);
+
+    if (symbol == NULL) {
+        reportError("Assignment to undeclared variable",
+                    node->value);
+        return 0;
+    }
+
+    if (node->childCount != 1) {
+        reportError("Invalid assignment expression", node->value);
+        return 0;
+    }
+
+    const char *actualType =
+        analyzeExpression(node->children[0], table);
+
+    if (actualType == NULL)
+        return 0;
+
+    if (!canAssign(symbol->dataType, actualType)) {
+        reportError("Incompatible assignment type for variable",
+                    node->value);
+        return 0;
+    }
+
+    updateSymbolInitialization(table, node->value);
+    return 1;
+}
+
+static int analyzeCondition(
+    const ASTNode *node,
+    SymbolTable *table
+)
+{
+    const char *type = analyzeExpression(node, table);
+
+    if (type == NULL)
+        return 0;
+
+    if (!sameType(type, "boolean")) {
+        reportError("Condition must have boolean type", NULL);
+        return 0;
+    }
+
+    return 1;
+}
+
+/* ================= BLOCK ANALYSIS ================= */
+
+static int analyzeBlock(
+    const ASTNode *node,
+    SymbolTable *table
+)
+{
+    if (!enterScope(table)) {
+        reportError("Could not enter block scope", NULL);
+        return 0;
+    }
+
+    int success = 1;
+
+    for (int i = 0; i < node->childCount; i++) {
+        if (!analyzeNode(node->children[i], table))
+            success = 0;
+    }
+
+    if (!exitScope(table)) {
+        reportError("Could not exit block scope", NULL);
+        success = 0;
+    }
+
+    return success;
+}
+
+/* ================= IF ANALYSIS ================= */
+
+static int analyzeIf(
+    const ASTNode *node,
+    SymbolTable *table
+)
+{
+    if (node->childCount < 2 || node->childCount > 3) {
+        reportError("Invalid IF statement", NULL);
+        return 0;
+    }
+
+    int success = analyzeCondition(node->children[0], table);
+
+    if (!analyzeNode(node->children[1], table))
+        success = 0;
+
+    if (node->childCount == 3) {
+        if (!analyzeNode(node->children[2], table))
+            success = 0;
+    }
+
+    return success;
+}
+
+/* ================= WHILE ANALYSIS ================= */
+
+static int analyzeWhile(
+    const ASTNode *node,
+    SymbolTable *table
+)
+{
+    if (node->childCount != 2) {
+        reportError("Invalid WHILE statement", NULL);
+        return 0;
+    }
+
+    int success = analyzeCondition(node->children[0], table);
+
+    if (!analyzeNode(node->children[1], table))
+        success = 0;
+
+    return success;
+}
+
+/* ================= GENERAL NODE ANALYSIS ================= */
+
+static int analyzeNode(const ASTNode *node, SymbolTable *table)
+{
+    if (node == NULL)
+        return 0;
+
+    switch (node->type) {
+        case AST_PROGRAM:
+            {
+                int success = 1;
+
+                for (int i = 0; i < node->childCount; i++) {
+                    if (!analyzeNode(node->children[i], table))
+                        success = 0;
+                }
+
+                return success;
+            }
+
+        case AST_BLOCK:
+            return analyzeBlock(node, table);
+
+        case AST_VARIABLE_DECLARATION:
+            return analyzeDeclaration(node, table);
+
+        case AST_ASSIGNMENT:
+            return analyzeAssignment(node, table);
+
+        case AST_PRINT:
+            if (node->childCount != 1) {
+                reportError("Invalid print statement", NULL);
+                return 0;
+            }
+
+            return analyzeExpression(node->children[0], table) != NULL;
+
+        case AST_IF:
+            return analyzeIf(node, table);
+
+        case AST_WHILE:
+            return analyzeWhile(node, table);
+
+        case AST_EMPTY:
+            return 1;
+
+        default:
+            reportError("Unexpected AST node in statement", NULL);
+            return 0;
+    }
+}
+
+/* ================= PUBLIC ANALYZER FUNCTION ================= */
+
+int analyzeSemantics(const ASTNode *root, SymbolTable *table)
+{
+    if (root == NULL || table == NULL) {
+        fprintf(stderr, "Semantic Error: Invalid analyzer input.\n");
+        return 0;
+    }
+
+    semanticErrors = 0;
+
+    printf("\n========== SEMANTIC ANALYSIS ==========\n");
+
+    int success = analyzeNode(root, table);
+
+    if (semanticErrors == 0 && success) {
+        printf("Semantic Analysis Successful!\n");
+        printf("No semantic errors found.\n");
+        return 1;
+    }
+
+    printf("Semantic Analysis Failed!\n");
+    printf("Total semantic errors: %d\n", semanticErrors);
+
+    return 0;
 }

@@ -2,39 +2,11 @@
 #ifndef JAVA_SEMANTIC_H
 #define JAVA_SEMANTIC_H
 
-#include "../parser/parser.h"
+#include "../ast/ast.h"
+#include "../symbol_table/symbol_table.h"
 
-#define MAX_SYMBOLS 500
-#define MAX_SCOPES 200
-
-typedef struct {
-    char name[MAX_LEXEME];
-    char type[MAX_LEXEME];
-    int initialized;
-    int line;
-    int scopeId;
-} Symbol;
-
-typedef struct {
-    int id;
-    int parentId;
-} Scope;
-
-typedef struct {
-    Symbol symbols[MAX_SYMBOLS];
-    Scope scopes[MAX_SCOPES];
-
-    int count;
-    int errorCount;
-
-    int scopeCount;
-    int currentScope;
-} SemanticAnalyzer;
-
-void initSemantic(SemanticAnalyzer *analyzer);
-
-int analyzeSemantics(SemanticAnalyzer *analyzer, ASTNode *root);
-
-void printSymbolTable(SemanticAnalyzer *analyzer);
+/* Analyze the complete AST using the symbol table.
+   Returns 1 if successful, 0 if semantic errors are found. */
+int analyzeSemantics(const ASTNode *root, SymbolTable *table);
 
 #endif
