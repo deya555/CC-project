@@ -13,10 +13,9 @@ int main(void) {
 const char *source =
     "public class Main {\n"
     "    public static void main(String[] args) {\n"
-    "        int number = \"hello\";\n"
+    "        int number = \"hello\" - 10;\n"
     "    }\n"
     "}\n";
-
     printf("========== JAVA COMPILER TEST ==========\n\n");
 
     /* =====================================
