@@ -5,6 +5,7 @@
 #include "lexer/lexer.h"
 #include "parser/parser.h"
 #include "semantic/semantic.h"
+#include "tac/tac.h"
 
 int main(void) {
 
@@ -107,11 +108,40 @@ int main(void) {
         printf("Semantic Analysis Failed!\n");
     }
 
+    /* Stop if semantic analysis fails */
+
+    if (!semanticSuccess) {
+        freeAST(root);
+        return 1;
+    }
+
     /* =====================================
-       STEP 4: SYMBOL TABLE
+       STEP 4: THREE ADDRESS CODE GENERATION
        ===================================== */
 
-    printf("\n========== JAVA SYMBOL TABLE ==========\n");
+    printf("\nSTEP 4: THREE ADDRESS CODE GENERATION\n");
+
+    TACGenerator tac;
+
+    initTAC(&tac);
+
+    if (!generateTAC(&tac, root)) {
+
+        printf("TAC Generation Failed!\n");
+
+        freeAST(root);
+        return 1;
+    }
+
+    printf("TAC Generation Successful!\n");
+
+    printTAC(&tac);
+
+    /* =====================================
+       STEP 5: SYMBOL TABLE
+       ===================================== */
+
+    printf("\nSTEP 5: JAVA SYMBOL TABLE\n");
 
     printSymbolTable(&analyzer);
 
@@ -123,5 +153,5 @@ int main(void) {
 
     printf("\n========== JAVA COMPILER TEST COMPLETE ==========\n");
 
-    return semanticSuccess ? 0 : 1;
+    return 0;
 }
