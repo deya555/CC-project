@@ -185,10 +185,17 @@ static ASTNode *parseStatement(Parser *parser) {
             return NULL;
         }
 
-        ASTNode *declaration = createNode("VARIABLE_DECLARATION",
-                                          token->lexeme);
-        snprintf(declaration->type, sizeof(declaration->type),
-                 "%s", type);
+        ASTNode *declaration = createNode(
+    "VARIABLE_DECLARATION",
+    token->lexeme
+);
+
+snprintf(
+    declaration->dataType,
+    sizeof(declaration->dataType),
+    "%s",
+    type
+);
 
         parser->position++;
 

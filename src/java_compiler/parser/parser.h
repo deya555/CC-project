@@ -7,6 +7,7 @@
 typedef struct ASTNode {
     char type[50];
     char value[MAX_LEXEME];
+    char dataType[MAX_LEXEME];
     struct ASTNode *children[20];
     int childCount;
 } ASTNode;

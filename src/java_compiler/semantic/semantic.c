@@ -88,7 +88,7 @@ static void analyzeNode(
         addSymbol(
             analyzer,
             node->value,
-            node->type,
+            node->dataType,
             initialized
         );
 
