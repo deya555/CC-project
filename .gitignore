@@ -1,3 +1,10 @@
+@"
+# C/C++ compiled object files
+*.o
+
+# Windows executable files
+*.exe
+"@ | Add-Content .gitignore
 # Logs
 logs
 *.log
