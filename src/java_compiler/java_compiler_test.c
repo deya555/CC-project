@@ -6,6 +6,28 @@
 #include "parser/parser.h"
 #include "semantic/semantic.h"
 #include "tac/tac.h"
+#include "runtime/runtime.h"
+
+static int saveJavaSource(
+    const char *fileName,
+    const char *source
+) {
+    FILE *file = fopen(fileName, "w");
+
+    if (file == NULL) {
+        printf("Error: Could not create Java source file.\n");
+        return 0;
+    }
+
+    if (fputs(source, file) == EOF) {
+        printf("Error: Could not write Java source file.\n");
+        fclose(file);
+        return 0;
+    }
+
+    fclose(file);
+    return 1;
+}
 
 int main(void) {
 
@@ -13,7 +35,10 @@ int main(void) {
 const char *source =
     "public class Main {\n"
     "    public static void main(String[] args) {\n"
-    "        int number = \"hello\" - 10;\n"
+    "        int number = 10;\n"
+    "        boolean result = number > 5;\n"
+    "        System.out.println(number);\n"
+    "        System.out.println(result);\n"
     "    }\n"
     "}\n";
     printf("========== JAVA COMPILER TEST ==========\n\n");
@@ -144,6 +169,36 @@ printf("\n");
     printf("\nSTEP 5: JAVA SYMBOL TABLE\n");
 
     printSymbolTable(&analyzer);
+
+    /* =====================================
+   STEP 6: JAVA COMPILATION AND EXECUTION
+   ===================================== */
+
+printf("\nSTEP 6: JAVA COMPILATION AND EXECUTION\n");
+
+/* Save Java source code */
+
+if (!saveJavaSource(
+        "src/java_compiler/runtime/Main.java",
+        source
+    )) {
+
+    freeAST(root);
+    return 1;
+}
+
+/* Compile and execute Java program */
+
+if (!runJavaProgram(
+        "src/java_compiler/runtime/Main.java",
+        "Main"
+    )) {
+
+    printf("\nJava Runtime Failed!\n");
+
+    freeAST(root);
+    return 1;
+}
 
     /* =====================================
        CLEANUP
