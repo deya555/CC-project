@@ -539,25 +539,27 @@ static void analyzeNode(
 
     /* VARIABLE DECLARATION */
 
-    if (strcmp(node->type, "VARIABLE_DECLARATION") == 0) {
-        int index = addSymbol(
+if (strcmp(node->type, "VARIABLE_DECLARATION") == 0) {
+    int index = addSymbol(
+        analyzer,
+        node->value,
+        node->dataType,
+        0
+    );
+
+    if (node->childCount > 0) {
+        char expressionType[MAX_LEXEME];
+
+        inferExpressionType(
             analyzer,
-            node->value,
-            node->dataType,
-            0
+            node->children[0],
+            expressionType
         );
 
-        if (node->childCount > 0) {
-            char expressionType[MAX_LEXEME];
+        if (index != -1 &&
+            strcmp(expressionType, "unknown") != 0) {
 
-            inferExpressionType(
-                analyzer,
-                node->children[0],
-                expressionType
-            );
-
-            if (index != -1 &&
-                !canAssign(
+            if (!canAssign(
                     analyzer->symbols[index].type,
                     expressionType
                 )) {
@@ -571,14 +573,14 @@ static void analyzeNode(
 
                 analyzer->errorCount++;
             }
-            else if (index != -1) {
+            else {
                 analyzer->symbols[index].initialized = 1;
             }
         }
-
-        return;
     }
 
+    return;
+}
     /* ASSIGNMENT */
 
     if (strcmp(node->type, "ASSIGNMENT") == 0) {
