@@ -11,6 +11,7 @@ typedef struct {
     char instructions[MAX_TAC_INSTRUCTIONS][MAX_TAC_LINE];
     int count;
     int tempCount;
+    int labelCount;
     int hasError;
 } TACGenerator;
 

@@ -60,17 +60,10 @@ function runCommand(command, args, options = {}) {
     });
 
     child.on("close", (exitCode) => {
-      finish(null, {
-        exitCode,
-        stdout,
-        stderr,
-      });
+      finish(null, { exitCode, stdout, stderr });
     });
 
-    child.stdin.on("error", () => {
-      // The process may exit before consuming all input.
-    });
-
+    child.stdin.on("error", () => {});
     child.stdin.end(options.input || "");
   });
 }
@@ -80,15 +73,8 @@ async function analyzeC(code) {
   const projectRoot = path.resolve(__dirname, "../..");
   const parserExecutable = path.join(projectRoot, "c_parser.exe");
 
-  try {
-    await fs.access(parserExecutable);
-  } catch {
-    throw new Error(
-      "C compiler executable not found. Please build c_parser.exe first."
-    );
-  }
+  await fs.access(parserExecutable);
 
-  // The C parser reads source code from standard input.
   const result = await runCommand(
     parserExecutable,
     [],
@@ -115,21 +101,18 @@ async function analyzeC(code) {
       result.exitCode === 0 &&
       !syntaxFailed &&
       !semanticFailed,
-
     output: output || "C compiler finished without output.",
-
     exitCode: result.exitCode,
-
     stage: syntaxFailed
       ? "compile"
       : semanticFailed
         ? "semantic"
         : "analysis",
-
     analysisReady: true,
   };
 }
 
+// Compiles and executes C, C++ and Java programs.
 async function executeCode(language, code, input = "") {
   if (typeof code !== "string" || !code.trim()) {
     throw new Error("Please enter some source code.");
@@ -151,12 +134,6 @@ async function executeCode(language, code, input = "") {
     throw new Error("Unsupported language.");
   }
 
-  // C uses our custom compiler pipeline.
-  if (language === "c") {
-    return await analyzeC(code);
-  }
-
-  // C++ and Java retain their existing execution behavior.
   const workDir = path.join(
     os.tmpdir(),
     `multicompiler-${randomUUID()}`
@@ -168,7 +145,26 @@ async function executeCode(language, code, input = "") {
     let executable;
     let runArgs = [];
 
-    if (language === "cpp") {
+    if (language === "c") {
+      const source = path.join(workDir, "main.c");
+      executable = path.join(workDir, "main.exe");
+
+      await fs.writeFile(source, code, "utf8");
+
+      const result = await runCommand(
+        "gcc",
+        [source, "-o", executable],
+        { cwd: workDir }
+      );
+
+      if (result.exitCode !== 0) {
+        return {
+          success: false,
+          output: result.stderr || "C compilation failed.",
+          stage: "compile",
+        };
+      }
+    } else if (language === "cpp") {
       const source = path.join(workDir, "main.cpp");
       executable = path.join(workDir, "main.exe");
 
@@ -223,9 +219,10 @@ async function executeCode(language, code, input = "") {
       success: result.exitCode === 0,
       output: [result.stdout, result.stderr]
         .filter(Boolean)
-        .join("\n"),
+        .join("\n") || "Program finished without output.",
       exitCode: result.exitCode,
       stage: "run",
+      executionReady: true,
     };
   } finally {
     await fs.rm(workDir, {
@@ -235,4 +232,7 @@ async function executeCode(language, code, input = "") {
   }
 }
 
-module.exports = { executeCode };
+module.exports = {
+  executeCode,
+  analyzeC,
+};

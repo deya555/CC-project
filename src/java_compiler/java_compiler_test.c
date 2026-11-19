@@ -10,15 +10,20 @@
 int main(void) {
 
     /* JAVA SOURCE CODE */
-    const char *source =
-        "class Test {\n"
-        "    public static void main(String[] args) {\n"
-        "        int number = 10;\n"
-        "        int price = 20;\n"
-        "        int total = number + price;\n"
-        "        System.out.println(total);\n"
-        "    }\n"
-        "}\n";
+const char *source =
+    "public class Main {\n"
+    "    public static void main(String[] args) {\n"
+    "        int number = 10;\n"
+    "        if (number > 5) {\n"
+    "            System.out.println(number);\n"
+    "        } else {\n"
+    "            System.out.println(0);\n"
+    "        }\n"
+    "        while (number > 0) {\n"
+    "            number = number - 1;\n"
+    "        }\n"
+    "    }\n"
+    "}\n";
 
     printf("========== JAVA COMPILER TEST ==========\n\n");
 
@@ -89,6 +94,10 @@ int main(void) {
     }
 
     printf("Syntax Analysis Successful!\n\n");
+
+    printf("========== JAVA ABSTRACT SYNTAX TREE ==========\n");
+printAST(root, 0);
+printf("\n");
 
     /* =====================================
        STEP 3: SEMANTIC ANALYSIS
