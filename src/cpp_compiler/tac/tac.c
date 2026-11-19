@@ -224,14 +224,24 @@ static void generate_statement(CPPTAC *tac, CPPASTNode *node) {
     switch (node->type) {
 
         case AST_PROGRAM:
-        case AST_BLOCK:
-            for (CPPASTNode *child = node->left;
-                 child;
-                 child = child->next) {
+case AST_BLOCK:
+    for (CPPASTNode *child = node->left;
+         child;
+         child = child->next) {
 
-                generate_statement(tac, child);
-            }
-            break;
+        generate_statement(tac, child);
+    }
+    break;
+
+case AST_FUNCTION_DECLARATION:
+    emit(tac, "function %s:", node->value);
+
+    if (node->third != NULL) {
+        generate_statement(tac, node->third);
+    }
+
+    emit(tac, "end function %s", node->value);
+    break;
 
         case AST_VARIABLE_DECLARATION:
             if (node->left && node->right) {

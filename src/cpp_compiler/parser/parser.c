@@ -488,7 +488,129 @@ static CPPASTNode *parse_variable_declaration(CPPParser *parser)
 
 static CPPASTNode *parse_declaration(CPPParser *parser)
 {
-    return parse_variable_declaration(parser);
+    char type_name[CPP_MAX_LEXEME];
+
+    snprintf(
+        type_name,
+        sizeof(type_name),
+        "%s",
+        parser->current_token.lexeme
+    );
+
+    advance_token(parser);
+
+    if (!check_token(parser, CPP_TOKEN_IDENTIFIER)) {
+        parser_error(parser, "Expected identifier after type");
+        return NULL;
+    }
+
+    char name[CPP_MAX_LEXEME];
+
+    snprintf(
+        name,
+        sizeof(name),
+        "%s",
+        parser->current_token.lexeme
+    );
+
+    advance_token(parser);
+
+    /* Function declaration */
+    if (match_token(parser, CPP_TOKEN_LEFT_PAREN)) {
+
+        CPPASTNode *function = create_node(
+            AST_FUNCTION_DECLARATION,
+            name
+        );
+
+        function->left = create_node(
+            AST_IDENTIFIER,
+            type_name
+        );
+
+        CPPASTNode *parameters = NULL;
+
+        if (!check_token(parser, CPP_TOKEN_RIGHT_PAREN)) {
+
+            do {
+                if (!is_type_token(parser->current_token.type)) {
+                    parser_error(parser, "Expected parameter type");
+                    break;
+                }
+
+                char parameter_type[CPP_MAX_LEXEME];
+
+                snprintf(
+                    parameter_type,
+                    sizeof(parameter_type),
+                    "%s",
+                    parser->current_token.lexeme
+                );
+
+                advance_token(parser);
+
+                if (!check_token(parser, CPP_TOKEN_IDENTIFIER)) {
+                    parser_error(parser, "Expected parameter name");
+                    break;
+                }
+
+                CPPASTNode *parameter = create_node(
+                    AST_PARAMETER,
+                    parameter_type
+                );
+
+                parameter->left = create_node(
+                    AST_IDENTIFIER,
+                    parser->current_token.lexeme
+                );
+
+                advance_token(parser);
+
+                append_node(&parameters, parameter);
+
+            } while (match_token(parser, CPP_TOKEN_COMMA));
+        }
+
+        function->right = parameters;
+
+        expect_token(
+            parser,
+            CPP_TOKEN_RIGHT_PAREN,
+            "Expected ')' after function parameters"
+        );
+
+        if (check_token(parser, CPP_TOKEN_LEFT_BRACE)) {
+            function->third = parse_block(parser);
+        } else {
+            expect_token(
+                parser,
+                CPP_TOKEN_SEMICOLON,
+                "Expected function body or ';'"
+            );
+        }
+
+        return function;
+    }
+
+    /* Variable declaration */
+    CPPASTNode *node = create_node(
+        AST_VARIABLE_DECLARATION,
+        type_name
+    );
+
+    node->left = create_node(AST_IDENTIFIER, name);
+
+    if (match_token(parser, CPP_TOKEN_ASSIGN)) {
+        node->right = parse_expression(parser);
+    }
+
+    expect_token(
+        parser,
+        CPP_TOKEN_SEMICOLON,
+        "Expected ';' after variable declaration"
+    );
+
+    return node;
 }
 
 /* ---------- STATEMENTS ---------- */
