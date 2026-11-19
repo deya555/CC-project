@@ -13,15 +13,7 @@ int main(void) {
 const char *source =
     "public class Main {\n"
     "    public static void main(String[] args) {\n"
-    "        int number = 10;\n"
-    "        if (number > 5) {\n"
-    "            System.out.println(number);\n"
-    "        } else {\n"
-    "            System.out.println(0);\n"
-    "        }\n"
-    "        while (number > 0) {\n"
-    "            number = number - 1;\n"
-    "        }\n"
+    "        int number = \"hello\";\n"
     "    }\n"
     "}\n";
 
