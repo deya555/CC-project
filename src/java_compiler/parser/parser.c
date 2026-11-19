@@ -296,6 +296,7 @@ ASTNode *parseProgram(Parser *parser) {
     ASTNode *root = createNode("PROGRAM", "");
 
     while (current(parser) &&
+           current(parser)->type != TOKEN_EOF &&
            !parser->hasError) {
 
         if (match(parser, "public") ||
